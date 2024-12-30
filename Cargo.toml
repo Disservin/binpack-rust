@@ -9,6 +9,11 @@ readme = "README.md"
 
 [features]
 default = []
+
+# Enables the usage of `_pdep_u64` which will make the reader faster on modern hardware.
+# If disabled a fallback procedure is used.
+# This should be enabled on all Intel CPUs, which support BMI2.
+# CPUs from AMD should only enabled this if the architecture is Zen3+.
 bmi2 = []
 
 [dependencies]

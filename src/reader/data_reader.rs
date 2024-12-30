@@ -44,6 +44,17 @@ struct OwnedMoveScoreListReader {
 impl CompressedTrainingDataEntryReader {
     /// Create a new CompressedTrainingDataEntryReader,
     /// reading from the file at the given path.
+    /// # Examples
+    ///
+    /// ```
+    /// use sfbinpack::CompressedTrainingDataEntryReader;
+    ///
+    /// let mut reader = CompressedTrainingDataEntryReader::new("my.binpack").unwrap();
+    ///
+    /// while reader.has_next() {
+    ///     let entry = reader.next();
+    /// }
+    /// ```
     pub fn new(path: &str) -> Result<Self> {
         let chunk = Vec::with_capacity(SUGGESTED_CHUNK_SIZE);
 
