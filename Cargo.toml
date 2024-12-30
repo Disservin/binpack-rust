@@ -1,5 +1,5 @@
 [package]
-name = "binpack"
+name = "sfbinpack"
 version = "0.1.0"
 description = "Library to read Stockfish Binpacks"
 edition = "2021"

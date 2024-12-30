@@ -20,7 +20,7 @@ binpack = { version = "0.1.0", features = ["bmi2"] }
 ## Usage
 
 ```rust
-use binpack::reader::data_reader::CompressedTrainingDataEntryReader;
+use sfbinpack::reader::data_reader::CompressedTrainingDataEntryReader;
 
 fn main() {
     let mut reader = CompressedTrainingDataEntryReader::new(
