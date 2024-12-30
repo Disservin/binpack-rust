@@ -5,7 +5,6 @@ use crate::chess::{
     piece::Piece,
     piecetype::PieceType,
 };
-use crate::compressed_move::CompressedMove;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum MoveType {
@@ -42,17 +41,13 @@ impl MoveType {
 /// and as such empty. The captured pawn square is move.to ^ 8
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Move {
-    pub from: Square,
-    pub to: Square,
+    from: Square,
+    to: Square,
     move_type: MoveType,
     promoted_piece: Piece,
 }
 
 impl Move {
-    pub fn compress(&self) -> CompressedMove {
-        CompressedMove::from_move(*self)
-    }
-
     pub fn new(from: Square, to: Square, move_type: MoveType, promoted_piece: Piece) -> Self {
         debug_assert!(from.index() < 64);
         debug_assert!(to.index() < 64);
@@ -74,10 +69,12 @@ impl Move {
         }
     }
 
+    /// Get the move type
     pub const fn mtype(&self) -> MoveType {
         self.move_type
     }
 
+    /// Get the promoted piece, Piece::none(), if not a promotion
     pub const fn promoted_piece(&self) -> Piece {
         self.promoted_piece
     }
@@ -157,6 +154,7 @@ impl Move {
         }
     }
 
+    /// Fromat the move as UCI
     pub fn as_uci(&self) -> String {
         let mut uci = format!("{}{}", self.from, self.to);
 

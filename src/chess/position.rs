@@ -1,5 +1,5 @@
 use crate::chess::{
-    attacks::Attacks,
+    attacks,
     bitboard::Bitboard,
     castling_rights::{CastleType, CastlingRights},
     color::Color,
@@ -196,7 +196,7 @@ impl Position {
             // check if enemy pawn can legally capture the pawn
             // if so set the ep square
 
-            let ep_mask = Attacks::pawn(self.stm, ep);
+            let ep_mask = attacks::pawn(self.stm, ep);
             let enemy_mask = self.pieces_bb_color(!self.stm, PieceType::Pawn);
 
             // enemy pawn can pseudo capture the pawn
@@ -406,12 +406,12 @@ impl Position {
 
         // fast stuff first
 
-        (Attacks::pawn(!c, sq) & pieces(PieceType::Pawn)
-            | Attacks::knight(sq) & pieces(PieceType::Knight)
-            | Attacks::king(sq) & pieces(PieceType::King)
-            | Attacks::bishop(sq, occupied)
+        (attacks::pawn(!c, sq) & pieces(PieceType::Pawn)
+            | attacks::knight(sq) & pieces(PieceType::Knight)
+            | attacks::king(sq) & pieces(PieceType::King)
+            | attacks::bishop(sq, occupied)
                 & (pieces(PieceType::Bishop) | pieces(PieceType::Queen))
-            | Attacks::rook(sq, occupied) & (pieces(PieceType::Rook) | pieces(PieceType::Queen)))
+            | attacks::rook(sq, occupied) & (pieces(PieceType::Rook) | pieces(PieceType::Queen)))
         .bits()
             > 0
     }

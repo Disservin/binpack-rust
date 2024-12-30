@@ -6,6 +6,7 @@ use crate::chess::{
     r#move::{Move, MoveType},
 };
 
+/// A compressed move representation, using 16 bits.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct CompressedMove {
     // from most significant bits
@@ -31,43 +32,43 @@ impl CompressedMove {
         Self { packed: 0 }
     }
 
-    pub const fn from_ordinal(data: u16) -> Self {
-        Self { packed: data }
-    }
+    // pub const fn from_ordinal(data: u16) -> Self {
+    //     Self { packed: data }
+    // }
 
     // move must be either valid or a null move
-    pub fn from_move(move_: Move) -> Self {
-        let mut packed = 0;
+    // pub fn from_move(move_: Move) -> Self {
+    //     let mut packed = 0;
 
-        // else null move
-        if move_.from != move_.to {
-            debug_assert!(move_.from != Square::NONE);
-            debug_assert!(move_.to != Square::NONE);
+    //     // else null move
+    //     if move_.from() != move_.to() {
+    //         debug_assert!(move_.from() != Square::NONE);
+    //         debug_assert!(move_.to() != Square::NONE);
 
-            packed = ((move_.mtype() as u16) << (16 - 2))
-                | ((move_.from.index() as u16) << (16 - 2 - 6))
-                | ((move_.to.index() as u16) << (16 - 2 - 6 - 6));
+    //         packed = ((move_.mtype() as u16) << (16 - 2))
+    //             | ((move_.from().index() as u16) << (16 - 2 - 6))
+    //             | ((move_.to().index() as u16) << (16 - 2 - 6 - 6));
 
-            if move_.mtype() == MoveType::Promotion {
-                debug_assert!(move_.promoted_piece() != Piece::none());
+    //         if move_.mtype() == MoveType::Promotion {
+    //             debug_assert!(move_.promoted_piece() != Piece::none());
 
-                packed |= (move_.promoted_piece().piece_type() as u16) - (PieceType::Knight as u16);
-            } else {
-                debug_assert!(move_.promoted_piece() == Piece::none());
-            }
-        }
+    //             packed |= (move_.promoted_piece().piece_type() as u16) - (PieceType::Knight as u16);
+    //         } else {
+    //             debug_assert!(move_.promoted_piece() == Piece::none());
+    //         }
+    //     }
 
-        Self { packed }
-    }
+    //     Self { packed }
+    // }
 
-    pub fn write_to_big_endian(&self, data: &mut [u8]) {
-        data[0] = (self.packed >> 8) as u8;
-        data[1] = (self.packed & 0xFF) as u8;
-    }
+    // pub fn write_to_big_endian(&self, data: &mut [u8]) {
+    //     data[0] = (self.packed >> 8) as u8;
+    //     data[1] = (self.packed & 0xFF) as u8;
+    // }
 
-    pub const fn packed(&self) -> u16 {
-        self.packed
-    }
+    // pub const fn packed(&self) -> u16 {
+    //     self.packed
+    // }
 
     pub const fn move_type(&self) -> MoveType {
         // Assuming MoveType implements From<u16>

@@ -1,7 +1,7 @@
 use crate::{
     arithmetic::{nth_set_bit_index, unsigned_to_signed, used_bits_safe},
     chess::{
-        attacks::Attacks,
+        attacks,
         bitboard::Bitboard,
         castling_rights::{CastleType, CastlingRights, CastlingTraits},
         color::Color,
@@ -116,7 +116,7 @@ impl<'a> PackedMoveScoreListReader<'a> {
                     attack_targets |= Bitboard::from_square(ep_square);
                 }
 
-                let mut destinations = Attacks::pawn(side_to_move, from) & attack_targets;
+                let mut destinations = attacks::pawn(side_to_move, from) & attack_targets;
 
                 let sq_forward = from + forward;
                 if !occupied.sq_set(sq_forward) {
@@ -170,7 +170,7 @@ impl<'a> PackedMoveScoreListReader<'a> {
 
                 let castling_rights = pos.castling_rights();
 
-                let attacks = Attacks::king(from) & !our_pieces;
+                let attacks = attacks::king(from) & !our_pieces;
                 let attacks_size = attacks.count();
 
                 let num_castlings =
@@ -201,7 +201,7 @@ impl<'a> PackedMoveScoreListReader<'a> {
 
             // All other pieces (Queen, Rook, Bishop, Knight)
             _ => {
-                let attacks = Attacks::piece_attacks(piece_type, from, occupied) & !our_pieces;
+                let attacks = attacks::piece_attacks(piece_type, from, occupied) & !our_pieces;
                 let move_id = self
                     .reader
                     .extract_bits_le8(used_bits_safe(attacks.count() as u64));

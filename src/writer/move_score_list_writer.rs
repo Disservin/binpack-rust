@@ -1,6 +1,6 @@
 use crate::arithmetic::used_bits_safe;
 use crate::binpack_error::Result;
-use crate::chess::attacks::Attacks;
+use crate::chess::attacks;
 use crate::chess::bitboard::Bitboard;
 use crate::chess::castling_rights::{CastleType, CastlingRights, CastlingTraits};
 use crate::chess::color::Color;
@@ -108,7 +108,7 @@ impl PackedMoveScoreList {
                 }
 
                 // Calculate possible destinations
-                let mut destinations = Attacks::pawn(side_to_move, move_.from()) & attack_targets;
+                let mut destinations = attacks::pawn(side_to_move, move_.from()) & attack_targets;
 
                 // Add forward moves
                 let sq_forward = move_.from() + forward;
@@ -145,7 +145,7 @@ impl PackedMoveScoreList {
 
                 let castling_rights = pos.castling_rights();
 
-                let attacks = Attacks::king(move_.from()) & !our_pieces;
+                let attacks = attacks::king(move_.from()) & !our_pieces;
                 let attacks_size = attacks.count();
                 let num_castling_rights = (castling_rights & our_castling_rights_mask).count_ones();
 
@@ -174,7 +174,7 @@ impl PackedMoveScoreList {
 
             _ => {
                 let attacks =
-                    Attacks::piece_attacks(piece_type, move_.from(), occupied) & !our_pieces;
+                    attacks::piece_attacks(piece_type, move_.from(), occupied) & !our_pieces;
                 let move_id = (attacks & before(move_.to())).count();
                 let num_moves = attacks.count();
 

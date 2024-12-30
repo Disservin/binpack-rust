@@ -6,6 +6,7 @@ pub struct Piece {
     id: u8,
 }
 
+/// Piece representation
 impl Piece {
     pub const WHITE_PAWN: Piece = Piece::new(PieceType::Pawn, Color::White);
     pub const WHITE_KNIGHT: Piece = Piece::new(PieceType::Knight, Color::White);
@@ -22,6 +23,7 @@ impl Piece {
     pub const BLACK_KING: Piece = Piece::new(PieceType::King, Color::Black);
     pub const NONE: Piece = Piece::none();
 
+    /// Create a piece from an id, must be in the range [0, 12]
     pub const fn from_id(id: i32) -> Self {
         debug_assert!(id >= 0 && id < 13);
         Self { id: id as u8 }
@@ -38,20 +40,27 @@ impl Piece {
         }
     }
 
+    /// Get the piece type of the piece
     #[inline(always)]
     pub const fn piece_type(&self) -> PieceType {
         PieceType::from_ordinal(self.id >> 1)
     }
 
+    /// Get the color of the piece
     #[inline(always)]
     pub const fn color(&self) -> Color {
         Color::from_ordinal(self.id & 1)
     }
 
+    /// Get the piece type and color of the piece
     pub fn parts(&self) -> (PieceType, Color) {
         (self.piece_type(), self.color())
     }
 
+    ///                  P, N, B, R, Q,  K
+    /// White pieces are 0, 2, 4, 6, 8, 10
+    /// Black pieces are 1, 3, 5, 7, 9, 11
+    /// None is 12
     #[inline(always)]
     pub const fn as_int(&self) -> usize {
         self.id as usize

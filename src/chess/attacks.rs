@@ -4,42 +4,38 @@ use crate::chess::{
 
 const HYPERBOLA: HyperbolaQsc = HyperbolaQsc::new();
 
-pub struct Attacks;
+pub fn pawn(color: Color, sq: Square) -> Bitboard {
+    Bitboard::new(PAWN_ATTACKS[color as usize][sq.index() as usize])
+}
 
-impl Attacks {
-    pub fn pawn(color: Color, sq: Square) -> Bitboard {
-        Bitboard::new(PAWN_ATTACKS[color as usize][sq.index() as usize])
-    }
+pub fn knight(sq: Square) -> Bitboard {
+    Bitboard::new(KNIGHT_ATTACKS[sq.index() as usize])
+}
 
-    pub fn knight(sq: Square) -> Bitboard {
-        Bitboard::new(KNIGHT_ATTACKS[sq.index() as usize])
-    }
+pub fn bishop(sq: Square, occupied: Bitboard) -> Bitboard {
+    HYPERBOLA.bishop_attack(sq, occupied)
+}
 
-    pub fn bishop(sq: Square, occupied: Bitboard) -> Bitboard {
-        HYPERBOLA.bishop_attack(sq, occupied)
-    }
+pub fn rook(sq: Square, occupied: Bitboard) -> Bitboard {
+    HYPERBOLA.rook_attack(sq, occupied)
+}
 
-    pub fn rook(sq: Square, occupied: Bitboard) -> Bitboard {
-        HYPERBOLA.rook_attack(sq, occupied)
-    }
+pub fn queen(sq: Square, occupied: Bitboard) -> Bitboard {
+    Bitboard::from_u64(bishop(sq, occupied).bits() | rook(sq, occupied).bits())
+}
 
-    pub fn queen(sq: Square, occupied: Bitboard) -> Bitboard {
-        Bitboard::from_u64(Self::bishop(sq, occupied).bits() | Self::rook(sq, occupied).bits())
-    }
+pub fn king(sq: Square) -> Bitboard {
+    Bitboard::new(KING_ATTACKS[sq.index() as usize])
+}
 
-    pub fn king(sq: Square) -> Bitboard {
-        Bitboard::new(KING_ATTACKS[sq.index() as usize])
-    }
-
-    pub fn piece_attacks(pt: PieceType, sq: Square, occupied: Bitboard) -> Bitboard {
-        match pt {
-            PieceType::Knight => Self::knight(sq),
-            PieceType::Bishop => Self::bishop(sq, occupied),
-            PieceType::Rook => Self::rook(sq, occupied),
-            PieceType::Queen => Self::queen(sq, occupied),
-            PieceType::King => Self::king(sq),
-            _ => panic!("Invalid piece type"),
-        }
+pub fn piece_attacks(pt: PieceType, sq: Square, occupied: Bitboard) -> Bitboard {
+    match pt {
+        PieceType::Knight => knight(sq),
+        PieceType::Bishop => bishop(sq, occupied),
+        PieceType::Rook => rook(sq, occupied),
+        PieceType::Queen => queen(sq, occupied),
+        PieceType::King => king(sq),
+        _ => panic!("Invalid piece type"),
     }
 }
 
@@ -321,11 +317,11 @@ mod tests {
     #[test]
     fn test_bishop_mask() {
         assert_eq!(
-            Attacks::bishop(Square::new(27), Bitboard::new(0)).bits(),
+            bishop(Square::new(27), Bitboard::new(0)).bits(),
             9241705379636978241
         );
         assert_eq!(
-            Attacks::rook(Square::new(27), Bitboard::new(0)).bits(),
+            rook(Square::new(27), Bitboard::new(0)).bits(),
             578721386714368008
         );
     }
