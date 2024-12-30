@@ -1,4 +1,4 @@
-# Binpack Reader
+# Stockfish Binpack
 
 Rust port of the Stockfish binpack reader from the [C++ version](https://github.com/official-stockfish/Stockfish/blob/tools/src/extra/nnue_data_binpack_format.h).
 
