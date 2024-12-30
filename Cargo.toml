@@ -21,7 +21,7 @@ tempfile = "3"
 path = "src/lib.rs"
 
 [[bin]]
-name = "binpack"
+name = "sfbinpack"
 path = "src/main.rs"
 
 [profile.release]
