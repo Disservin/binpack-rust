@@ -4,30 +4,37 @@ use crate::chess::{
 
 const HYPERBOLA: HyperbolaQsc = HyperbolaQsc::new();
 
+/// Get pseudo pawn attacks for a given color and square.
 pub fn pawn(color: Color, sq: Square) -> Bitboard {
     Bitboard::new(PAWN_ATTACKS[color as usize][sq.index() as usize])
 }
 
+/// Get pseudo knight attacks for a given square.
 pub fn knight(sq: Square) -> Bitboard {
     Bitboard::new(KNIGHT_ATTACKS[sq.index() as usize])
 }
 
+/// Get pseudo bishop attacks for a given square and occupied squares.
 pub fn bishop(sq: Square, occupied: Bitboard) -> Bitboard {
     HYPERBOLA.bishop_attack(sq, occupied)
 }
 
+/// Get pseudo rook attacks for a given square and occupied squares.
 pub fn rook(sq: Square, occupied: Bitboard) -> Bitboard {
     HYPERBOLA.rook_attack(sq, occupied)
 }
 
+/// Get pseudo queen attacks for a given square and occupied squares.
 pub fn queen(sq: Square, occupied: Bitboard) -> Bitboard {
     Bitboard::from_u64(bishop(sq, occupied).bits() | rook(sq, occupied).bits())
 }
 
+/// Get pseudo king attacks for a given square.
 pub fn king(sq: Square) -> Bitboard {
     Bitboard::new(KING_ATTACKS[sq.index() as usize])
 }
 
+/// Get pseudo attacks for a given piece type, square, and occupied squares.
 pub fn piece_attacks(pt: PieceType, sq: Square, occupied: Bitboard) -> Bitboard {
     match pt {
         PieceType::Knight => knight(sq),

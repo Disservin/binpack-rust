@@ -26,18 +26,22 @@ impl CastlingRights {
             | Self::BLACK_QUEEN_SIDE.0,
     );
 
+    /// Create an empty set of castling rights.
     pub fn empty() -> Self {
         Self(0)
     }
 
+    /// Check if it contains a specific castling right.
     pub fn contains(&self, other: CastlingRights) -> bool {
         (self.0 & other.0) == other.0
     }
 
+    /// Check how many castling rights are set, max is 4, min is 0.
     pub fn count_ones(&self) -> u32 {
         self.0.count_ones()
     }
 
+    /// Get all castling rights for a specific color.
     pub fn castling_rights(color: Color) -> Self {
         match color {
             Color::White => Self::WHITE,

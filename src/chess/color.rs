@@ -7,6 +7,7 @@ pub enum Color {
 }
 
 impl Color {
+    /// White is 0, Black is 1
     pub const fn from_ordinal(value: u8) -> Self {
         match value {
             0 => Color::White,
@@ -15,6 +16,7 @@ impl Color {
         }
     }
 
+    /// White is 0, Black is 1
     pub const fn ordinal(&self) -> u8 {
         match self {
             Color::White => 0,

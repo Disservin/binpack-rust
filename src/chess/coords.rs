@@ -133,6 +133,7 @@ impl Square {
         })
     }
 
+    /// Check if the square is within bounds
     #[must_use]
     pub const fn is_valid(r: i64, f: i64) -> bool {
         r >= 0 && r < 8 && f >= 0 && f < 8

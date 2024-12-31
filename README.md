@@ -19,6 +19,12 @@ binpack = { version = "0.1.0", features = ["bmi2"] }
 
 ## Usage
 
+Run the following Cargo command in your project directory:
+
+```shell
+cargo add sfbinpack
+```
+
 ```rust
 use sfbinpack::CompressedTrainingDataEntryReader;
 

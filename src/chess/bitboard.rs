@@ -39,10 +39,7 @@ impl Bitboard {
         lsb
     }
 
-    pub fn get(&self, index: u32) -> bool {
-        self.data & (1 << index) != 0
-    }
-
+    /// Toggle the bit on the given index, depending on the value (1 means set, 0 means clear)
     pub fn set(&mut self, index: u32, value: bool) {
         if value {
             self.data |= 1 << index;
@@ -51,22 +48,27 @@ impl Bitboard {
         }
     }
 
+    /// Clear all bits
     pub fn clear(&mut self) {
         self.data = 0;
     }
 
+    /// Checks if the bit on the given square is set
     pub fn is_set(&self, index: u32) -> bool {
         self.data & (1 << index) != 0
     }
 
+    /// Set the bit on the given square
     pub fn sq_set(&self, index: Square) -> bool {
         self.data & (1 << index.index()) != 0
     }
 
+    /// Create from a u64
     pub fn from_u64(data: u64) -> Self {
         Self { data }
     }
 
+    /// Get the u64 representation
     pub fn bits(&self) -> u64 {
         self.data
     }
