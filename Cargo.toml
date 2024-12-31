@@ -1,6 +1,6 @@
 [package]
 name = "sfbinpack"
-version = "0.3.2"
+version = "0.3.3"
 description = "Library to read Stockfish Binpacks"
 edition = "2021"
 license = "GPL-3.0"
