@@ -31,7 +31,7 @@ impl CompressedTrainingDataFile {
         let file = OpenOptions::new()
             .read(true)
             .write(true)
-            .create(true)
+            .create(false)
             .append(append)
             .open(path)?;
 
