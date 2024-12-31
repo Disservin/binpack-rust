@@ -114,4 +114,39 @@ mod tests {
         assert_eq!(nth_set_bit_index(test_value, 3), 5);
         assert_eq!(nth_set_bit_index(test_value, 4), 7);
     }
+
+    #[test]
+    fn test_msb() {
+        assert_eq!(msb(12), 3);
+    }
+
+    #[test]
+    fn test_used_bits() {
+        assert_eq!(used_bits(12), 4);
+    }
+
+    #[test]
+    fn test_used_bits_safe() {
+        assert_eq!(used_bits_safe(12), 4);
+    }
+
+    #[test]
+    fn test_used_bits_safe_zero() {
+        assert_eq!(used_bits_safe(0), 0);
+    }
+
+    #[test]
+    fn test_unsigned_to_signed() {
+        assert_eq!(unsigned_to_signed(65409), -32705);
+    }
+
+    #[test]
+    fn test_unsigned_to_signed_2() {
+        assert_eq!(unsigned_to_signed(24), 12);
+    }
+
+    #[test]
+    fn test_unsigned_to_signed_zero() {
+        assert_eq!(unsigned_to_signed(0), 0);
+    }
 }
