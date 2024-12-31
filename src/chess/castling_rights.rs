@@ -37,6 +37,13 @@ impl CastlingRights {
     pub fn count_ones(&self) -> u32 {
         self.0.count_ones()
     }
+
+    pub fn castling_rights(color: Color) -> Self {
+        match color {
+            Color::White => Self::WHITE,
+            Color::Black => Self::BLACK,
+        }
+    }
 }
 
 impl std::ops::BitAnd for CastlingRights {

@@ -4,7 +4,6 @@ use crate::{
         attacks,
         bitboard::Bitboard,
         castling_rights::{CastleType, CastlingRights, CastlingTraits},
-        color::Color,
         coords::{FlatSquareOffset, Rank, Square},
         piece::Piece,
         piecetype::PieceType,
@@ -102,23 +101,9 @@ impl<'a> PackedMoveScoreListReader<'a> {
 
         match piece_type {
             PieceType::Pawn => {
-                let promotion_rank = if side_to_move == Color::White {
-                    Rank::SEVENTH
-                } else {
-                    Rank::SECOND
-                };
-
-                let start_rank = if side_to_move == Color::White {
-                    Rank::SECOND
-                } else {
-                    Rank::SEVENTH
-                };
-
-                let forward = if side_to_move == Color::White {
-                    FlatSquareOffset::new(0, 1)
-                } else {
-                    FlatSquareOffset::new(0, -1)
-                };
+                let promotion_rank = Rank::last_pawn_rank(side_to_move);
+                let start_rank = Rank::last_pawn_rank(!side_to_move);
+                let forward = FlatSquareOffset::forward(side_to_move);
 
                 let ep_square = pos.ep_square();
                 let their_pieces = pos.pieces_bb(!side_to_move);
@@ -175,11 +160,7 @@ impl<'a> PackedMoveScoreListReader<'a> {
             }
 
             PieceType::King => {
-                let our_castling_rights_mask = if side_to_move == Color::White {
-                    CastlingRights::WHITE
-                } else {
-                    CastlingRights::BLACK
-                };
+                let our_castling_rights_mask = CastlingRights::castling_rights(side_to_move);
 
                 let castling_rights = pos.castling_rights();
 

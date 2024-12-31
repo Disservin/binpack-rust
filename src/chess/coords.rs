@@ -3,6 +3,8 @@ use std::{
     ops::{Add, Sub},
 };
 
+use super::color::Color;
+
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct FlatSquareOffset {
     value: i8,
@@ -32,6 +34,14 @@ impl FlatSquareOffset {
     // Negation operator
     pub const fn neg(&self) -> Self {
         Self { value: -self.value }
+    }
+
+    pub fn forward(color: Color) -> Self {
+        if color == Color::White {
+            Self::new(0, 1)
+        } else {
+            Self::new(0, -1)
+        }
     }
 }
 
@@ -230,6 +240,14 @@ impl Rank {
 
     pub const fn from_u32(index: u32) -> Self {
         Self { index }
+    }
+
+    pub fn last_pawn_rank(color: Color) -> Self {
+        if color == Color::White {
+            Self::SEVENTH
+        } else {
+            Self::SECOND
+        }
     }
 }
 
