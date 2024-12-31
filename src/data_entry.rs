@@ -1,7 +1,7 @@
 use crate::chess::{position::Position, r#move::Move};
 
 /// A single training data entry.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TrainingDataEntry {
     /// The position of the board.
     pub pos: Position,

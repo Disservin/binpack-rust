@@ -9,7 +9,7 @@ use crate::chess::{
     r#move::{Move, MoveType},
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Position {
     /// Bitboards for each piece type (PNBRQK)
     bb: [u64; 6],
@@ -397,6 +397,74 @@ impl Position {
         fen.push_str(&self.fullm.to_string());
 
         fen
+    }
+
+    /// Create a position from a FEN string
+    pub fn from_fen(fen: &str) -> Self {
+        let mut pos = Self::new();
+        pos.parse_fen(fen);
+        pos
+    }
+
+    /// Parse a FEN string and set the position
+    fn parse_fen(&mut self, fen: &str) {
+        let mut parts = fen.split_whitespace();
+
+        let mut rank = 7;
+        let mut file = 0;
+
+        for c in parts.next().unwrap().chars() {
+            if c == '/' {
+                rank -= 1;
+                file = 0;
+            } else if c.is_digit(10) {
+                file += c.to_digit(10).unwrap() as usize;
+            } else {
+                let color = if c.is_uppercase() {
+                    Color::White
+                } else {
+                    Color::Black
+                };
+
+                let piece = match c.to_ascii_lowercase() {
+                    'p' => Piece::new(PieceType::Pawn, color),
+                    'n' => Piece::new(PieceType::Knight, color),
+                    'b' => Piece::new(PieceType::Bishop, color),
+                    'r' => Piece::new(PieceType::Rook, color),
+                    'q' => Piece::new(PieceType::Queen, color),
+                    'k' => Piece::new(PieceType::King, color),
+                    _ => panic!("Invalid piece type"),
+                };
+
+                self.place(piece, Square::new(rank * 8 + file as u32));
+                file += 1;
+            }
+        }
+
+        self.stm = if parts.next().unwrap() == "w" {
+            Color::White
+        } else {
+            Color::Black
+        };
+
+        self.castling_rights = CastlingRights::NONE;
+        for c in parts.next().unwrap().chars() {
+            match c {
+                'K' => self.castling_rights |= CastlingRights::WHITE_KING_SIDE,
+                'Q' => self.castling_rights |= CastlingRights::WHITE_QUEEN_SIDE,
+                'k' => self.castling_rights |= CastlingRights::BLACK_KING_SIDE,
+                'q' => self.castling_rights |= CastlingRights::BLACK_QUEEN_SIDE,
+                _ => {}
+            }
+        }
+
+        let ep = parts.next().unwrap();
+        if ep != "-" {
+            self.enpassant = Square::from_string(ep).unwrap();
+        }
+
+        self.halfm = parts.next().unwrap().parse().unwrap();
+        self.fullm = parts.next().unwrap().parse().unwrap();
     }
 
     /// Check if a square is attacked by the given color

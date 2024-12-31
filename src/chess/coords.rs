@@ -79,6 +79,24 @@ impl Square {
         }
     }
 
+    pub fn from_string(s: &str) -> Option<Self> {
+        if s.len() != 2 {
+            return None;
+        }
+
+        let file = s.chars().nth(0).unwrap();
+        let rank = s.chars().nth(1).unwrap();
+
+        let file = file as i32 - 'a' as i32;
+        let rank = rank as i32 - '1' as i32;
+
+        if Self::is_valid(rank as i64, file as i64) {
+            Some(Self::from_rank_file(rank as i64, file as i64))
+        } else {
+            None
+        }
+    }
+
     #[must_use]
     pub const fn index(self) -> u32 {
         self.index

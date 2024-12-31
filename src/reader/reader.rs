@@ -201,4 +201,69 @@ impl CompressedTrainingDataEntryReader {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use crate::chess::{
+        coords::Square,
+        piece::Piece,
+        position::Position,
+        r#move::{Move, MoveType},
+    };
+
+    use super::*;
+
+    #[test]
+    fn test_reader_simple() {
+        let mut reader = CompressedTrainingDataEntryReader::new("./test/ep1.binpack").unwrap();
+
+        let mut entries: Vec<TrainingDataEntry> = Vec::new();
+
+        while reader.has_next() {
+            let entry = reader.next();
+
+            entries.push(entry);
+        }
+
+        let expected = vec![
+            TrainingDataEntry {
+                pos: Position::from_fen("1q5b/1r5k/4p2p/1b2P1pN/3p4/6PP/1nP3B1/1Q2B1K1 w - - 0 35"),
+                mv: Move::new(
+                    Square::new(10),
+                    Square::new(26),
+                    MoveType::Normal,
+                    Piece::none(),
+                ),
+                score: -201,
+                ply: 68,
+                result: 0,
+            },
+            TrainingDataEntry {
+                pos: Position::from_fen("1q5b/1r5k/4p2p/1b2P1pN/2Pp4/6PP/1n4B1/1Q2B1K1 b - - 0 35"),
+                mv: Move::new(
+                    Square::new(27),
+                    Square::new(19),
+                    MoveType::Normal,
+                    Piece::none(),
+                ),
+                score: 254,
+                ply: 69,
+                result: 0,
+            },
+            TrainingDataEntry {
+                pos: Position::from_fen(
+                    "1q5b/1r5k/4p2p/1b2P1pN/2P5/3p2PP/1n4B1/1Q2B1K1 w - - 0 36",
+                ),
+                mv: Move::new(
+                    Square::new(14),
+                    Square::new(49),
+                    MoveType::Normal,
+                    Piece::none(),
+                ),
+                score: -220,
+                ply: 70,
+                result: 0,
+            },
+        ];
+
+        assert_eq!(entries, expected);
+    }
+}

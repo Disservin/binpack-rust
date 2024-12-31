@@ -8,7 +8,7 @@ pub enum CastleType {
     Long,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CastlingRights(u8);
 
 impl CastlingRights {
