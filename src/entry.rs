@@ -85,3 +85,44 @@ impl PackedTrainingDataEntry {
         ((self.data[offset] as u16) << 8) | (self.data[offset + 1] as u16)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::chess::{coords::Square, piece::Piece, r#move::MoveType};
+
+    use super::*;
+
+    #[test]
+    fn test_packed_training_data_entry() {
+        let data = [
+            98, 121, 192, 21, 24, 76, 241, 100, 100, 106, 0, 4, 8, 48, 2, 17, 17, 145, 19, 117,
+            247, 0, 0, 0, 61, 232, 0, 253, 0, 39, 0, 2,
+        ];
+
+        let packed_entry = PackedTrainingDataEntry::from_slice(&data);
+
+        let entry = packed_entry.unpack_entry();
+
+        let expected = TrainingDataEntry {
+            pos: Position::from_fen(
+                "1r3rk1/p2qnpb1/6pp/P1p1p3/3nN3/2QP2P1/R3PPBP/2B2RK1 b - - 2 20",
+            ),
+            mv: Move::new(
+                Square::new(61),
+                Square::new(58),
+                MoveType::Normal,
+                Piece::none(),
+            ),
+            score: -127,
+            ply: 39,
+            result: 0,
+        };
+
+        assert_eq!(entry, expected);
+    }
+
+    #[test]
+    fn test_size_of_packed_training_data_entry() {
+        assert_eq!(PackedTrainingDataEntry::byte_size(), 32);
+    }
+}
