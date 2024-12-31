@@ -7,7 +7,7 @@ use crate::{
     chess::position::Position,
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CompressedPosition {
     occupied: Bitboard,
     packed_state: [u8; 16],
@@ -19,6 +19,8 @@ impl CompressedPosition {
     }
 
     pub fn read_from_big_endian(data: &[u8]) -> Self {
+        debug_assert!(data.len() >= 24);
+
         let occupied = Bitboard::new(
             ((data[0] as u64) << 56)
                 | ((data[1] as u64) << 48)
@@ -101,5 +103,52 @@ impl CompressedPosition {
         }
 
         pos
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_read_big_endian() {
+        let data = [
+            98, 121, 192, 21, 24, 76, 241, 100, 100, 106, 0, 4, 8, 48, 2, 17, 17, 145, 19, 117,
+            247, 0, 0, 0,
+        ];
+
+        let compressed_pos = CompressedPosition::read_from_big_endian(&data);
+
+        assert_eq!(
+            CompressedPosition {
+                occupied: Bitboard::new(7095913884733469028),
+                packed_state: [100, 106, 0, 4, 8, 48, 2, 17, 17, 145, 19, 117, 247, 0, 0, 0]
+            },
+            compressed_pos
+        );
+    }
+
+    #[test]
+    fn test_compressed_position() {
+        let data = [
+            98, 121, 192, 21, 24, 76, 241, 100, 100, 106, 0, 4, 8, 48, 2, 17, 17, 145, 19, 117,
+            247, 0, 0, 0,
+        ];
+
+        let compressed_pos = CompressedPosition::read_from_big_endian(&data);
+        let pos = compressed_pos.decompress();
+
+        assert_eq!(
+            pos.fen(),
+            "1r3rk1/p2qnpb1/6pp/P1p1p3/3nN3/2QP2P1/R3PPBP/2B2RK1 b - - 0 1"
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "range end index 24 out of range for slice of length 23")]
+    fn test_too_small_data() {
+        let data = [0; 23];
+
+        let _ = CompressedPosition::read_from_big_endian(&data).decompress();
     }
 }

@@ -27,6 +27,7 @@ impl CompressedMove {
     }
 
     pub fn read_from_big_endian(data: &[u8]) -> Self {
+        debug_assert!(data.len() >= 2);
         Self {
             packed: ((data[0] as u16) << 8) | (data[1] as u16),
         }
@@ -41,29 +42,30 @@ impl CompressedMove {
     // }
 
     // move must be either valid or a null move
-    // pub fn from_move(move_: Move) -> Self {
-    //     let mut packed = 0;
+    #[allow(dead_code)]
+    pub fn from_move(move_: Move) -> Self {
+        let mut packed = 0;
 
-    //     // else null move
-    //     if move_.from() != move_.to() {
-    //         debug_assert!(move_.from() != Square::NONE);
-    //         debug_assert!(move_.to() != Square::NONE);
+        // else null move
+        if move_.from() != move_.to() {
+            debug_assert!(move_.from() != Square::NONE);
+            debug_assert!(move_.to() != Square::NONE);
 
-    //         packed = ((move_.mtype() as u16) << (16 - 2))
-    //             | ((move_.from().index() as u16) << (16 - 2 - 6))
-    //             | ((move_.to().index() as u16) << (16 - 2 - 6 - 6));
+            packed = ((move_.mtype() as u16) << (16 - 2))
+                | ((move_.from().index() as u16) << (16 - 2 - 6))
+                | ((move_.to().index() as u16) << (16 - 2 - 6 - 6));
 
-    //         if move_.mtype() == MoveType::Promotion {
-    //             debug_assert!(move_.promoted_piece() != Piece::none());
+            if move_.mtype() == MoveType::Promotion {
+                debug_assert!(move_.promoted_piece() != Piece::none());
 
-    //             packed |= (move_.promoted_piece().piece_type() as u16) - (PieceType::Knight as u16);
-    //         } else {
-    //             debug_assert!(move_.promoted_piece() == Piece::none());
-    //         }
-    //     }
+                packed |= (move_.promoted_piece().piece_type() as u16) - (PieceType::Knight as u16);
+            } else {
+                debug_assert!(move_.promoted_piece() == Piece::none());
+            }
+        }
 
-    //     Self { packed }
-    // }
+        Self { packed }
+    }
 
     // pub fn write_to_big_endian(&self, data: &mut [u8]) {
     //     data[0] = (self.packed >> 8) as u8;
@@ -125,5 +127,59 @@ impl CompressedMove {
 impl Default for CompressedMove {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compressed_move() {
+        let data = [61, 232, 0, 253, 0, 39, 0, 2];
+        let compressed = CompressedMove::read_from_big_endian(&data);
+
+        let expected = Move::new(
+            Square::new(61),
+            Square::new(58),
+            MoveType::Normal,
+            Piece::none(),
+        );
+
+        assert_eq!(expected, compressed.decompress());
+    }
+
+    #[test]
+    fn test_from_move_decompress() {
+        let expected = Move::new(
+            Square::new(48),
+            Square::new(56),
+            MoveType::Promotion,
+            Piece::new(PieceType::Queen, Color::White),
+        );
+
+        let compressed = CompressedMove::from_move(expected);
+
+        assert_eq!(expected, compressed.decompress());
+    }
+
+    #[test]
+    fn test_member_functions() {
+        let expected = Move::new(
+            Square::new(48),
+            Square::new(56),
+            MoveType::Promotion,
+            Piece::new(PieceType::Queen, Color::White),
+        );
+
+        let compressed = CompressedMove::from_move(expected);
+
+        assert_eq!(MoveType::Promotion, compressed.move_type());
+        assert_eq!(Square::new(48), compressed.from());
+        assert_eq!(Square::new(56), compressed.to());
+        assert_eq!(
+            Piece::new(PieceType::Queen, Color::White),
+            compressed.promoted_piece()
+        );
     }
 }
