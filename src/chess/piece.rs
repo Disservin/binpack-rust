@@ -56,13 +56,4 @@ impl Piece {
     pub fn parts(&self) -> (PieceType, Color) {
         (self.piece_type(), self.color())
     }
-
-    ///                  P, N, B, R, Q,  K
-    /// White pieces are 0, 2, 4, 6, 8, 10
-    /// Black pieces are 1, 3, 5, 7, 9, 11
-    /// None is 12
-    #[inline(always)]
-    pub const fn as_int(&self) -> usize {
-        self.id as usize
-    }
 }

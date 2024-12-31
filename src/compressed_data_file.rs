@@ -12,6 +12,9 @@ const MI_B: u32 = 1024 * KI_B;
 
 const MAX_CHUNK_SIZE: u32 = 100 * MI_B;
 
+/// Magic bytes that identify the chess binary format
+const MAGIC: &[u8; 4] = b"BINP";
+
 #[derive(Debug)]
 struct Header {
     chunk_size: u32,
@@ -62,11 +65,14 @@ impl CompressedTrainingDataFile {
         false
     }
 
+    /// EBNF: BLOCK
     pub fn read_next_chunk(&mut self) -> Result<Vec<u8>> {
+        // EBNF: ChunkHeader
         let header = self.read_chunk_header()?;
 
         let mut data = vec![0u8; (header.chunk_size) as usize];
 
+        // EBNF: Chain
         self.file.read_exact(&mut data)?;
 
         self.read_bytes += header.chunk_size as u64;
@@ -87,6 +93,7 @@ impl CompressedTrainingDataFile {
     //     self.file.write_all(&buf)
     // }
 
+    // Reads the block and chunksize
     fn read_chunk_header(&mut self) -> Result<Header> {
         let mut buf = [0u8; HEADER_SIZE];
 
@@ -97,7 +104,7 @@ impl CompressedTrainingDataFile {
 
         self.read_bytes += HEADER_SIZE as u64;
 
-        if &buf[0..4] != b"BINP" {
+        if &buf[0..4] != MAGIC {
             return Err(BinpackError::InvalidMagic);
         }
 

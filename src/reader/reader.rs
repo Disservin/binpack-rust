@@ -41,6 +41,36 @@ struct OwnedMoveScoreListReader {
     reader: PackedMoveScoreListReader<'static>,
 }
 
+/*
+Search for EBNF: ..., to find the implementation.
+
+File         = Block*
+Block        = ChunkHeader Chain*
+ChunkHeader  = Magic ChunkSize
+Magic        = "BINP"
+ChunkSize    = UINT32LE               (* 4 bytes, little endian *)
+
+Chain        = Stem Count MoveText
+Stem         = Position Move Score PlyResult Rule50
+Count        = UINT16BE               (* 2 bytes, big endian *)
+MoveText     = MoveScore*
+
+(* Stem components - total 32 bytes *)
+Position     = CompressedPosition     (* 24 bytes *)
+Move         = CompressedMove         (* 2 bytes *)
+Score        = INT16BE                (* 2 bytes, big endian, signed *)
+PlyResult    = UINT8                  (* 2 byte, big endian unsigned *)
+Rule50       = UINT16BE               (* 2 bytes, big endian *)
+
+(* MoveText components *)
+MoveScore    = EncodedMove EncodedScore
+
+(* Encoded components *)
+EncodedMove  = VARLEN_UINT            (* Variable length encoding *)
+EncodedScore = VARLEN_INT             (* Variable length encoding *)
+*/
+
+// EBNF: File
 impl CompressedTrainingDataEntryReader {
     /// Create a new CompressedTrainingDataEntryReader,
     /// reading from the file at the given path.
@@ -49,7 +79,7 @@ impl CompressedTrainingDataEntryReader {
     /// ```
     /// use sfbinpack::CompressedTrainingDataEntryReader;
     ///
-    /// let mut reader = CompressedTrainingDataEntryReader::new("my.binpack").unwrap();
+    /// let mut reader = CompressedTrainingDataEntryReader::new("test/ep1.binpack").unwrap();
     ///
     /// while reader.has_next() {
     ///     let entry = reader.next();
@@ -109,27 +139,16 @@ impl CompressedTrainingDataEntryReader {
             return entry;
         }
 
-        // Read packed entry
-        let mut packed = PackedTrainingDataEntry::default();
+        // We don't have a movelist reader, so we first need to extract the "stem" information
 
-        debug_assert!(
-            self.offset + std::mem::size_of::<PackedTrainingDataEntry>() <= self.chunk.len()
-        );
+        // EBNF: Stem
+        let entry = self.read_entry();
 
-        packed.copy_from_slice(
-            &self.chunk[self.offset..self.offset + std::mem::size_of::<PackedTrainingDataEntry>()],
-        );
-
-        self.offset += std::mem::size_of::<PackedTrainingDataEntry>();
-
-        // Read number of plies
-        let num_plies =
-            ((self.chunk[self.offset] as u16) << 8) | (self.chunk[self.offset + 1] as u16);
-        self.offset += 2;
-
-        let entry = packed.unpack_entry();
+        // EBNF: Count
+        let num_plies = self.read_plies();
 
         if num_plies > 0 {
+            // EBNF: MoveText
             let chunk_ref = &self.chunk[self.offset..];
 
             // should be safe lol, someone rewrite this please
@@ -148,8 +167,28 @@ impl CompressedTrainingDataEntryReader {
         entry
     }
 
+    fn read_entry(&mut self) -> TrainingDataEntry {
+        let size = PackedTrainingDataEntry::byte_size();
+
+        debug_assert!(self.offset + size <= self.chunk.len());
+
+        let packed =
+            PackedTrainingDataEntry::from_slice(&self.chunk[self.offset..self.offset + size]);
+
+        self.offset += size;
+
+        packed.unpack_entry()
+    }
+
+    fn read_plies(&mut self) -> u16 {
+        let ply = ((self.chunk[self.offset] as u16) << 8) | (self.chunk[self.offset + 1] as u16);
+        self.offset += 2;
+        ply
+    }
+
+    // EBNF: BLOCK
     fn fetch_next_chunk_if_needed(&mut self) {
-        if self.offset + std::mem::size_of::<PackedTrainingDataEntry>() + 2 > self.chunk.len() {
+        if self.offset + PackedTrainingDataEntry::byte_size() + 2 > self.chunk.len() {
             if self.input_file.has_next_chunk() {
                 let chunk = self.input_file.read_next_chunk().unwrap();
                 self.chunk = chunk;

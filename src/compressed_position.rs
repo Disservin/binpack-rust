@@ -14,6 +14,10 @@ pub struct CompressedPosition {
 }
 
 impl CompressedPosition {
+    pub fn byte_size() -> usize {
+        std::mem::size_of::<CompressedPosition>()
+    }
+
     pub fn read_from_big_endian(data: &[u8]) -> Self {
         let occupied = Bitboard::new(
             ((data[0] as u64) << 56)

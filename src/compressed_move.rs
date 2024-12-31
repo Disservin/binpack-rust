@@ -22,6 +22,10 @@ impl CompressedMove {
     const SQUARE_MASK: u16 = 0b111111;
     const PROMOTED_PIECE_TYPE_MASK: u16 = 0b11;
 
+    pub fn byte_size() -> usize {
+        std::mem::size_of::<CompressedMove>()
+    }
+
     pub fn read_from_big_endian(data: &[u8]) -> Self {
         Self {
             packed: ((data[0] as u16) << 8) | (data[1] as u16),

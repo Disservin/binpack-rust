@@ -14,5 +14,5 @@ pub use crate::binpack_error::BinpackError;
 
 pub use crate::data_entry::TrainingDataEntry;
 
-pub use crate::reader::data_reader::CompressedReaderError;
-pub use crate::reader::data_reader::CompressedTrainingDataEntryReader;
+pub use crate::reader::CompressedReaderError;
+pub use crate::reader::CompressedTrainingDataEntryReader;

@@ -39,6 +39,7 @@ impl<'a> PackedMoveScoreListReader<'a> {
         self.num_read_plies < self.num_plies
     }
 
+    // Get the next TrainingDataEntry from the movetext
     pub fn next_entry(&mut self) -> TrainingDataEntry {
         self.entry.pos.do_move(self.entry.mv);
         let (mv, score) = self.next_move_score();
@@ -49,9 +50,8 @@ impl<'a> PackedMoveScoreListReader<'a> {
         self.entry
     }
 
+    // Read a move and score from the movetext
     pub fn next_move_score(&mut self) -> (Move, i16) {
-        const SCORE_VLE_BLOCK_SIZE: usize = 4;
-
         // if !self.has_next() {
         //     return Ok(None);
         // }
@@ -67,11 +67,12 @@ impl<'a> PackedMoveScoreListReader<'a> {
             .reader
             .extract_bits_le8(used_bits_safe(our_pieces.count() as u64));
 
+        // Extract the move
         let move_ = self.decode_move(piece_id, occupied);
 
-        let delta = unsigned_to_signed(self.reader.extract_vle16(SCORE_VLE_BLOCK_SIZE));
+        // Extract the score
+        let score = self.decode_score();
 
-        let score = self.last_score.wrapping_add(delta);
         self.last_score = -score;
 
         self.num_read_plies += 1;
@@ -79,6 +80,15 @@ impl<'a> PackedMoveScoreListReader<'a> {
         (move_, score)
     }
 
+    // EBNF: EncodedMove
+    fn decode_score(&mut self) -> i16 {
+        const SCORE_VLE_BLOCK_SIZE: usize = 4;
+        let delta = unsigned_to_signed(self.reader.extract_vle16(SCORE_VLE_BLOCK_SIZE));
+
+        self.last_score.wrapping_add(delta)
+    }
+
+    // EBNF: EncodedScore
     fn decode_move(&mut self, piece_id: u8, occupied: Bitboard) -> Move {
         let pos = &self.entry.pos;
 
@@ -97,11 +107,13 @@ impl<'a> PackedMoveScoreListReader<'a> {
                 } else {
                     Rank::SECOND
                 };
+
                 let start_rank = if side_to_move == Color::White {
                     Rank::SECOND
                 } else {
                     Rank::SEVENTH
                 };
+
                 let forward = if side_to_move == Color::White {
                     FlatSquareOffset::new(0, 1)
                 } else {
@@ -112,6 +124,7 @@ impl<'a> PackedMoveScoreListReader<'a> {
                 let their_pieces = pos.pieces_bb(!side_to_move);
 
                 let mut attack_targets = their_pieces;
+
                 if ep_square != Square::NONE {
                     attack_targets |= Bitboard::from_square(ep_square);
                 }
