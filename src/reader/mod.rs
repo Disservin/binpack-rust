@@ -1,6 +1,6 @@
 mod bitreader;
 mod move_score_list_reader;
-mod reader;
+mod compressed_reader;
 
-pub use reader::CompressedReaderError;
-pub use reader::CompressedTrainingDataEntryReader;
+pub use compressed_reader::CompressedReaderError;
+pub use compressed_reader::CompressedTrainingDataEntryReader;

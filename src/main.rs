@@ -4,8 +4,8 @@ use sfbinpack::CompressedTrainingDataEntryReader;
 
 fn main() {
     let mut reader = CompressedTrainingDataEntryReader::new(
-        "./test/ep1.binpack",
-        // "/mnt/g/stockfish-data/test80-2024/test80-2024-06-jun-2tb7p.min-v2.v6.binpack",
+        // "./test/ep1.binpack",
+        "/mnt/g/stockfish-data/test80-2024/test80-2024-06-jun-2tb7p.min-v2.v6.binpack",
         // "/mnt/g/stockfish-data/dual-nnue/hse-v1/leela96-filt-v2.min.high-simple-eval-1k.min-v2.binpack",
         // "/mnt/g/stockfish-data/dual-nnue/hse-v1/test60-2019-2tb7p.min.high-simple-eval-1k.min-v2.binpack",
     )

@@ -10,7 +10,7 @@ use crate::{
         piecetype::PieceType,
         r#move::Move,
     },
-    data_entry::TrainingDataEntry,
+    entry::TrainingDataEntry,
 };
 
 use super::bitreader::BitReader;
