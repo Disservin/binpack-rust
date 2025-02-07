@@ -1,5 +1,5 @@
 use crate::{
-    arithmetic::unsigned_to_signed,
+    arithmetic::{signed_to_unsigned, unsigned_to_signed},
     chess::{position::Position, r#move::Move},
     compressed_move::CompressedMove,
     compressed_position::CompressedPosition,
@@ -19,6 +19,14 @@ pub struct TrainingDataEntry {
     /// The game result of the position.
     /// 1, 0, -1 for white win, draw, white loss respectively.
     pub result: i16,
+}
+
+impl TrainingDataEntry {
+    pub fn is_continuation(&self, &other: &TrainingDataEntry) -> bool {
+        self.result == -other.result
+            && self.ply + 1 == other.ply
+            && self.pos.after_move(self.mv) == other.pos
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -79,6 +87,41 @@ impl PackedTrainingDataEntry {
             ply,
             result,
         }
+    }
+
+    pub fn from_entry(entry: &TrainingDataEntry) -> Self {
+        let mut packed = PackedTrainingDataEntry::default();
+        let mut offset = 0;
+
+        // Compress position
+        // EBNF: Position
+        let compressed_pos = CompressedPosition::compress(&entry.pos);
+        compressed_pos.write_to_big_endian(&mut packed.data[offset..]);
+        offset += CompressedPosition::byte_size();
+
+        // Compress move
+        // EBNF: Move
+        let compressed_move = CompressedMove::compress(&entry.mv);
+        compressed_move.write_to_big_endian(&mut packed.data[offset..]);
+        offset += CompressedMove::byte_size();
+
+        // Pack ply and result
+        let pr = entry.ply | (signed_to_unsigned(entry.result) << 14);
+        packed.data[offset] = (signed_to_unsigned(entry.score) >> 8) as u8;
+        offset += 1;
+        packed.data[offset] = signed_to_unsigned(entry.score) as u8;
+        offset += 1;
+        packed.data[offset] = (pr >> 8) as u8;
+        offset += 1;
+        packed.data[offset] = pr as u8;
+        offset += 1;
+
+        // Pack rule50 counter
+        packed.data[offset] = (entry.pos.rule50_counter() >> 8) as u8;
+        offset += 1;
+        packed.data[offset] = entry.pos.rule50_counter() as u8;
+
+        packed
     }
 
     fn read_u16_be(&self, offset: usize) -> u16 {

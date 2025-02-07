@@ -77,6 +77,15 @@ pub fn unsigned_to_signed(r: u16) -> i16 {
     v as i16
 }
 
+#[inline]
+pub fn signed_to_unsigned(a: i16) -> u16 {
+    let mut r = unsafe { std::mem::transmute::<i16, u16>(a) };
+    if r & 0x8000 != 0 {
+        r ^= 0x7FFF;
+    }
+    r.rotate_left(1)
+}
+
 #[inline(always)]
 pub fn used_bits_safe(n: u64) -> usize {
     if n == 0 {

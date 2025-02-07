@@ -56,4 +56,8 @@ impl Piece {
     pub fn parts(&self) -> (PieceType, Color) {
         (self.piece_type(), self.color())
     }
+
+    pub fn id(&self) -> u8 {
+        self.id
+    }
 }

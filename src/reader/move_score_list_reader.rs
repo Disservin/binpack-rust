@@ -210,5 +210,3 @@ impl<'a> PackedMoveScoreListReader<'a> {
         self.reader.num_read_bytes()
     }
 }
-
-// Helper functions
