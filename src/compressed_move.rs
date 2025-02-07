@@ -42,7 +42,6 @@ impl CompressedMove {
     // }
 
     // move must be either valid or a null move
-    #[allow(dead_code)]
     pub fn from_move(move_: Move) -> Self {
         let mut packed = 0;
 
@@ -67,10 +66,10 @@ impl CompressedMove {
         Self { packed }
     }
 
-    // pub fn write_to_big_endian(&self, data: &mut [u8]) {
-    //     data[0] = (self.packed >> 8) as u8;
-    //     data[1] = (self.packed & 0xFF) as u8;
-    // }
+    pub fn write_to_big_endian(&self, data: &mut [u8]) {
+        data[0] = (self.packed >> 8) as u8;
+        data[1] = (self.packed & 0xFF) as u8;
+    }
 
     // pub const fn packed(&self) -> u16 {
     //     self.packed
@@ -121,6 +120,10 @@ impl CompressedMove {
 
             Move::new(from, to, move_type, promoted_piece)
         }
+    }
+
+    pub fn compress(move_: &Move) -> Self {
+        Self::from_move(*move_)
     }
 }
 

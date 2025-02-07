@@ -274,6 +274,10 @@ impl Position {
         self.halfm = counter as u8;
     }
 
+    pub fn rule50_counter(&self) -> u16 {
+        self.halfm as u16
+    }
+
     /// Places a piece on the board
     #[inline(always)]
     pub fn place(&mut self, pc: Piece, sq: Square) {
@@ -514,5 +518,11 @@ impl Position {
         if from == Square::H8 || to == Square::H8 {
             self.castling_rights &= !CastlingRights::BLACK_KING_SIDE;
         }
+    }
+
+    pub fn after_move(&self, mv: Move) -> Self {
+        let mut pos = self.clone();
+        pos.do_move(mv);
+        pos
     }
 }

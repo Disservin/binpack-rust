@@ -15,3 +15,6 @@ pub use crate::entry::TrainingDataEntry;
 
 pub use crate::reader::CompressedReaderError;
 pub use crate::reader::CompressedTrainingDataEntryReader;
+
+pub use crate::writer::CompressedTrainingDataEntryWriter;
+pub use crate::writer::CompressedWriterError;

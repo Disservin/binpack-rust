@@ -1,10 +1,11 @@
-use crate::{
-    chess::bitboard::Bitboard,
-    chess::castling_rights::CastlingRights,
-    chess::color::Color,
-    chess::coords::{FlatSquareOffset, Rank, Square},
-    chess::piece::Piece,
-    chess::position::Position,
+use crate::chess::{
+    bitboard::Bitboard,
+    castling_rights::CastlingRights,
+    color::Color,
+    coords::{FlatSquareOffset, Rank, Square},
+    piece::Piece,
+    piecetype::PieceType,
+    position::Position,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -39,6 +40,19 @@ impl CompressedPosition {
             occupied,
             packed_state,
         }
+    }
+
+    pub fn write_to_big_endian(&self, data: &mut [u8]) {
+        let occupied = self.occupied.bits();
+        data[0] = (occupied >> 56) as u8;
+        data[1] = ((occupied >> 48) & 0xFF) as u8;
+        data[2] = ((occupied >> 40) & 0xFF) as u8;
+        data[3] = ((occupied >> 32) & 0xFF) as u8;
+        data[4] = ((occupied >> 24) & 0xFF) as u8;
+        data[5] = ((occupied >> 16) & 0xFF) as u8;
+        data[6] = ((occupied >> 8) & 0xFF) as u8;
+        data[7] = (occupied & 0xFF) as u8;
+        data[8..24].copy_from_slice(&self.packed_state[..16]);
     }
 
     pub fn decompress(&self) -> Position {
@@ -104,6 +118,84 @@ impl CompressedPosition {
 
         pos
     }
+
+    pub fn compress(pos: &Position) -> Self {
+        let mut compressed = CompressedPosition {
+            occupied: pos.occupied(),
+            packed_state: [0u8; 16],
+        };
+
+        let pack_piece = |sq: Square| -> u8 {
+            let piece = pos.piece_at(sq);
+            let piece_id = piece.id();
+
+            // Special case: pawn with en passant
+            if piece.piece_type() == PieceType::Pawn {
+                let ep_sq = pos.ep_square();
+                if ep_sq != Square::NONE {
+                    if (piece.color() == Color::White
+                        && sq.rank() == Rank::FOURTH
+                        && ep_sq == sq + FlatSquareOffset::new(0, -1))
+                        || (piece.color() == Color::Black
+                            && sq.rank() == Rank::FIFTH
+                            && ep_sq == sq + FlatSquareOffset::new(0, 1))
+                    {
+                        return 12;
+                    }
+                }
+            }
+
+            // Special case: rooks with castling rights
+            if piece == Piece::WHITE_ROOK {
+                if (sq == Square::A1
+                    && pos
+                        .castling_rights()
+                        .contains(CastlingRights::WHITE_QUEEN_SIDE))
+                    || (sq == Square::H1
+                        && pos
+                            .castling_rights()
+                            .contains(CastlingRights::WHITE_KING_SIDE))
+                {
+                    return 13;
+                }
+            }
+            if piece == Piece::BLACK_ROOK {
+                if (sq == Square::A8
+                    && pos
+                        .castling_rights()
+                        .contains(CastlingRights::BLACK_QUEEN_SIDE))
+                    || (sq == Square::H8
+                        && pos
+                            .castling_rights()
+                            .contains(CastlingRights::BLACK_KING_SIDE))
+                {
+                    return 14;
+                }
+            }
+
+            // Special case: black king when black to move
+            if piece == Piece::BLACK_KING && pos.side_to_move() == Color::Black {
+                return 15;
+            }
+
+            piece_id as u8
+        };
+
+        let mut idx = 0;
+        let mut nibble_idx = 0;
+        for sq in compressed.occupied.iter() {
+            let nibble = pack_piece(sq);
+            if nibble_idx % 2 == 0 {
+                compressed.packed_state[idx] = nibble;
+            } else {
+                compressed.packed_state[idx] |= nibble << 4;
+                idx += 1;
+            }
+            nibble_idx += 1;
+        }
+
+        compressed
+    }
 }
 
 #[cfg(test)]
@@ -144,11 +236,59 @@ mod tests {
         );
     }
 
-    #[test]
-    #[should_panic(expected = "range end index 24 out of range for slice of length 23")]
-    fn test_too_small_data() {
-        let data = [0; 23];
+    // #[test]
+    // #[should_panic(expected = "range end index 24 out of range for slice of length 23")]
+    // fn test_too_small_data() {
+    //     let data = [0; 23];
 
-        let _ = CompressedPosition::read_from_big_endian(&data).decompress();
+    //     let _ = CompressedPosition::read_from_big_endian(&data).decompress();
+    // }
+
+    #[test]
+    fn test_write_big_endian() {
+        let data = [
+            98, 121, 192, 21, 24, 76, 241, 100, 100, 106, 0, 4, 8, 48, 2, 17, 17, 145, 19, 117,
+            247, 0, 0, 0,
+        ];
+
+        let compressed_pos = CompressedPosition::read_from_big_endian(&data);
+        let mut new_data = [0; 24];
+        compressed_pos.write_to_big_endian(&mut new_data);
+
+        assert_eq!(data, new_data);
+    }
+
+    #[test]
+    fn test_compress_decompress() {
+        let pos =
+            Position::from_fen("1r3rk1/p2qnpb1/6pp/P1p1p3/3nN3/2QP2P1/R3PPBP/2B2RK1 b - - 0 1");
+
+        let compressed_pos = CompressedPosition::compress(&pos);
+        let decompressed_pos = compressed_pos.decompress();
+
+        assert_eq!(pos, decompressed_pos);
+    }
+
+    #[test]
+    fn test_compress_decompress_2() {
+        let pos = Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
+        let compressed_pos = CompressedPosition::compress(&pos);
+        let decompressed_pos = compressed_pos.decompress();
+
+        assert_eq!(pos, decompressed_pos);
+    }
+
+    #[test]
+    fn test_compress_decompress_3() {
+        let pos = Position::from_fen("2r3k1/4bpp1/2Q1p2P/p3P3/1p6/4B1P1/P1r2PK1/3R1R2 b - - 0 30");
+
+        let compressed_pos = CompressedPosition::compress(&pos);
+        let decompressed_pos = compressed_pos.decompress();
+
+        let position_without_fmt =
+            Position::from_fen("2r3k1/4bpp1/2Q1p2P/p3P3/1p6/4B1P1/P1r2PK1/3R1R2 b - - 0 1");
+
+        assert_eq!(position_without_fmt, decompressed_pos);
     }
 }

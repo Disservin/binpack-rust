@@ -1,5 +1,5 @@
 use std::fs::{File, OpenOptions};
-use std::io::{self, Read, Seek, SeekFrom};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 
 use crate::binpack_error::{BinpackError, Result};
 
@@ -27,11 +27,11 @@ pub struct CompressedTrainingDataFile {
 }
 
 impl CompressedTrainingDataFile {
-    pub fn new(path: &str, append: bool) -> io::Result<Self> {
+    pub fn new(path: &str, append: bool, create: bool) -> io::Result<Self> {
         let file = OpenOptions::new()
             .read(true)
             .write(true)
-            .create(false)
+            .create(create)
             .append(append)
             .open(path)?;
 
@@ -41,14 +41,14 @@ impl CompressedTrainingDataFile {
         })
     }
 
-    // pub fn append(&mut self, data: &[u8]) -> io::Result<()> {
-    //     let header = Header {
-    //         chunk_size: data.len() as u32,
-    //     };
-    //     self.write_chunk_header(&header)?;
-    //     self.file.write_all(data)?;
-    //     Ok(())
-    // }
+    pub fn append(&mut self, data: &[u8]) -> io::Result<()> {
+        let header = Header {
+            chunk_size: data.len() as u32,
+        };
+        self.write_chunk_header(&header)?;
+        self.file.write_all(data)?;
+        Ok(())
+    }
 
     pub fn read_bytes(&self) -> u64 {
         self.read_bytes
@@ -80,18 +80,18 @@ impl CompressedTrainingDataFile {
         Ok(data)
     }
 
-    // fn write_chunk_header(&mut self, header: &Header) -> io::Result<()> {
-    //     let mut buf = [0u8; HEADER_SIZE];
-    //     buf[0] = b'B';
-    //     buf[1] = b'I';
-    //     buf[2] = b'N';
-    //     buf[3] = b'P';
-    //     buf[4] = (header.chunk_size & 0xFF) as u8;
-    //     buf[5] = ((header.chunk_size >> 8) & 0xFF) as u8;
-    //     buf[6] = ((header.chunk_size >> 16) & 0xFF) as u8;
-    //     buf[7] = ((header.chunk_size >> 24) & 0xFF) as u8;
-    //     self.file.write_all(&buf)
-    // }
+    fn write_chunk_header(&mut self, header: &Header) -> io::Result<()> {
+        let mut buf = [0u8; HEADER_SIZE];
+        buf[0] = b'B';
+        buf[1] = b'I';
+        buf[2] = b'N';
+        buf[3] = b'P';
+        buf[4] = (header.chunk_size & 0xFF) as u8;
+        buf[5] = ((header.chunk_size >> 8) & 0xFF) as u8;
+        buf[6] = ((header.chunk_size >> 16) & 0xFF) as u8;
+        buf[7] = ((header.chunk_size >> 24) & 0xFF) as u8;
+        self.file.write_all(&buf)
+    }
 
     // Reads the block and chunksize
     fn read_chunk_header(&mut self) -> Result<Header> {
@@ -147,7 +147,8 @@ mod tests {
     #[test]
     fn test_new_file_creation() {
         let temp_path = NamedTempFile::new().unwrap();
-        let file = CompressedTrainingDataFile::new(temp_path.path().to_str().unwrap(), false);
+        let file =
+            CompressedTrainingDataFile::new(temp_path.path().to_str().unwrap(), false, false);
         assert!(file.is_ok());
     }
 
@@ -157,7 +158,8 @@ mod tests {
         let temp_file = create_test_file(test_data);
 
         let mut file =
-            CompressedTrainingDataFile::new(temp_file.path().to_str().unwrap(), false).unwrap();
+            CompressedTrainingDataFile::new(temp_file.path().to_str().unwrap(), false, false)
+                .unwrap();
         assert!(file.has_next_chunk());
 
         let chunk = file.read_next_chunk().unwrap();
@@ -171,7 +173,8 @@ mod tests {
         let temp_file = create_test_file(test_data);
 
         let mut file =
-            CompressedTrainingDataFile::new(temp_file.path().to_str().unwrap(), false).unwrap();
+            CompressedTrainingDataFile::new(temp_file.path().to_str().unwrap(), false, false)
+                .unwrap();
         assert!(file.has_next_chunk());
 
         let _ = file.read_next_chunk().unwrap();
@@ -184,7 +187,8 @@ mod tests {
         temp_file.write_all(b"INVALID").unwrap();
 
         let mut file =
-            CompressedTrainingDataFile::new(temp_file.path().to_str().unwrap(), false).unwrap();
+            CompressedTrainingDataFile::new(temp_file.path().to_str().unwrap(), false, false)
+                .unwrap();
         match file.read_next_chunk() {
             Err(BinpackError::InvalidMagic) => (),
             _ => panic!("Expected InvalidMagic error"),
@@ -200,7 +204,8 @@ mod tests {
         temp_file.write_all(&header).unwrap();
 
         let mut file =
-            CompressedTrainingDataFile::new(temp_file.path().to_str().unwrap(), false).unwrap();
+            CompressedTrainingDataFile::new(temp_file.path().to_str().unwrap(), false, false)
+                .unwrap();
         match file.read_next_chunk() {
             Err(BinpackError::InvalidFormat(_)) => (),
             _ => panic!("Expected InvalidFormat error"),
@@ -223,7 +228,8 @@ mod tests {
         temp_file.flush().unwrap();
 
         let mut file =
-            CompressedTrainingDataFile::new(temp_file.path().to_str().unwrap(), false).unwrap();
+            CompressedTrainingDataFile::new(temp_file.path().to_str().unwrap(), false, false)
+                .unwrap();
 
         for expected_chunk in chunks {
             assert!(file.has_next_chunk());
