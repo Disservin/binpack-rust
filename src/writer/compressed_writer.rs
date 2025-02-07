@@ -67,7 +67,7 @@ impl CompressedTrainingDataEntryWriter {
 
     /// Write a single entry to the file.
     pub fn write_entry(&mut self, entry: &TrainingDataEntry) -> Result<()> {
-        let is_cont = self.last_entry.is_continuation(&entry);
+        let is_cont = self.last_entry.is_continuation(entry);
 
         if is_cont {
             self.movelist
@@ -103,7 +103,7 @@ impl CompressedTrainingDataEntryWriter {
             self.is_first = false;
         }
 
-        self.last_entry = entry.clone();
+        self.last_entry = *entry;
         Ok(())
     }
 

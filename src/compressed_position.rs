@@ -132,45 +132,42 @@ impl CompressedPosition {
             // Special case: pawn with en passant
             if piece.piece_type() == PieceType::Pawn {
                 let ep_sq = pos.ep_square();
-                if ep_sq != Square::NONE {
-                    if (piece.color() == Color::White
+                if ep_sq != Square::NONE
+                    && ((piece.color() == Color::White
                         && sq.rank() == Rank::FOURTH
                         && ep_sq == sq + FlatSquareOffset::new(0, -1))
                         || (piece.color() == Color::Black
                             && sq.rank() == Rank::FIFTH
-                            && ep_sq == sq + FlatSquareOffset::new(0, 1))
-                    {
-                        return 12;
-                    }
+                            && ep_sq == sq + FlatSquareOffset::new(0, 1)))
+                {
+                    return 12;
                 }
             }
 
             // Special case: rooks with castling rights
-            if piece == Piece::WHITE_ROOK {
-                if (sq == Square::A1
+            if piece == Piece::WHITE_ROOK
+                && ((sq == Square::A1
                     && pos
                         .castling_rights()
                         .contains(CastlingRights::WHITE_QUEEN_SIDE))
                     || (sq == Square::H1
                         && pos
                             .castling_rights()
-                            .contains(CastlingRights::WHITE_KING_SIDE))
-                {
-                    return 13;
-                }
+                            .contains(CastlingRights::WHITE_KING_SIDE)))
+            {
+                return 13;
             }
-            if piece == Piece::BLACK_ROOK {
-                if (sq == Square::A8
+            if piece == Piece::BLACK_ROOK
+                && ((sq == Square::A8
                     && pos
                         .castling_rights()
                         .contains(CastlingRights::BLACK_QUEEN_SIDE))
                     || (sq == Square::H8
                         && pos
                             .castling_rights()
-                            .contains(CastlingRights::BLACK_KING_SIDE))
-                {
-                    return 14;
-                }
+                            .contains(CastlingRights::BLACK_KING_SIDE)))
+            {
+                return 14;
             }
 
             // Special case: black king when black to move
@@ -178,7 +175,7 @@ impl CompressedPosition {
                 return 15;
             }
 
-            piece_id as u8
+            piece_id
         };
 
         let mut idx = 0;

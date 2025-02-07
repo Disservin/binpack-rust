@@ -421,7 +421,7 @@ impl Position {
             if c == '/' {
                 rank -= 1;
                 file = 0;
-            } else if c.is_digit(10) {
+            } else if c.is_ascii_digit() {
                 file += c.to_digit(10).unwrap() as usize;
             } else {
                 let color = if c.is_uppercase() {
@@ -521,7 +521,7 @@ impl Position {
     }
 
     pub fn after_move(&self, mv: Move) -> Self {
-        let mut pos = self.clone();
+        let mut pos = *self;
         pos.do_move(mv);
         pos
     }

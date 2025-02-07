@@ -83,7 +83,7 @@ pub fn signed_to_unsigned(a: i16) -> u16 {
     if r & 0x8000 != 0 {
         r ^= 0x7FFF;
     }
-    (r << 1) | (r >> 15)
+    r.rotate_left(1)
 }
 
 #[inline(always)]
