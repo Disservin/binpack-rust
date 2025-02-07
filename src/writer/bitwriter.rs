@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct BitWriter {
     pub movetext: Vec<u8>,
     bits_left: usize,
@@ -11,6 +12,11 @@ impl BitWriter {
         }
     }
 
+    pub fn clear(&mut self) {
+        self.movetext.clear();
+        self.bits_left = 0;
+    }
+
     pub fn add_bits_le8(&mut self, bits: u8, count: usize) {
         if count == 0 {
             return;
@@ -20,11 +26,12 @@ impl BitWriter {
             self.movetext.push(bits << (8 - count));
             self.bits_left = 8;
         } else if count <= self.bits_left {
-            let last = self.movetext.last_mut().unwrap();
-            *last |= bits << (self.bits_left - count);
+            let last_idx = self.movetext.len() - 1;
+            self.movetext[last_idx] |= bits << (self.bits_left - count);
         } else {
             let spill_count = count - self.bits_left;
-            *self.movetext.last_mut().unwrap() |= bits >> spill_count;
+            let last_idx = self.movetext.len() - 1;
+            self.movetext[last_idx] |= bits >> spill_count;
             self.movetext.push(bits << (8 - spill_count));
             self.bits_left += 8;
         }
@@ -42,5 +49,9 @@ impl BitWriter {
                 break;
             }
         }
+    }
+
+    pub fn movetext(&self) -> &[u8] {
+        &self.movetext
     }
 }

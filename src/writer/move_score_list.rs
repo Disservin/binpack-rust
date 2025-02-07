@@ -13,13 +13,14 @@ use crate::{
     TrainingDataEntry,
 };
 
+use super::bitwriter::BitWriter;
+
 const SCORE_VLE_BLOCK_SIZE: usize = 4;
 
 #[derive(Debug)]
 pub struct PackedMoveScoreList {
     pub num_plies: u16,
-    pub movetext: Vec<u8>,
-    bits_left: usize,
+    writer: BitWriter,
     last_score: i16,
 }
 
@@ -27,61 +28,52 @@ impl PackedMoveScoreList {
     pub fn new() -> Self {
         Self {
             num_plies: 0,
-            movetext: Vec::new(),
-            bits_left: 0,
+            writer: BitWriter::new(),
             last_score: 0,
         }
     }
 
     pub fn clear(&mut self, e: &TrainingDataEntry) {
         self.num_plies = 0;
-        self.movetext.clear();
-        self.bits_left = 0;
+        self.writer.clear();
         self.last_score = -e.score;
     }
 
-    fn add_bits_le8(&mut self, bits: u8, count: usize) {
-        if count == 0 {
-            return;
-        }
-
-        if self.bits_left == 0 {
-            self.movetext.push(bits << (8 - count));
-            self.bits_left = 8;
-        } else if count <= self.bits_left {
-            let last_idx = self.movetext.len() - 1;
-            self.movetext[last_idx] |= bits << (self.bits_left - count);
-        } else {
-            let spill_count = count - self.bits_left;
-            let last_idx = self.movetext.len() - 1;
-            self.movetext[last_idx] |= bits >> spill_count;
-            self.movetext.push(bits << (8 - spill_count));
-            self.bits_left += 8;
-        }
-
-        self.bits_left -= count;
-    }
-
-    fn add_bits_vle16(&mut self, mut v: u16, block_size: usize) {
-        let mask = (1 << block_size) - 1;
-        loop {
-            let block = ((v & mask) | (u16::from(v > mask) << block_size)) as u8;
-            self.add_bits_le8(block, block_size + 1);
-            v >>= block_size;
-            if v == 0 {
-                break;
-            }
-        }
+    pub fn movetext(&self) -> &[u8] {
+        self.writer.movetext()
     }
 
     pub fn add_move_score(&mut self, pos: &Position, mv: Move, score: i16) {
+        let side_to_move = pos.side_to_move();
+        let piece_id =
+            (pos.pieces_bb(side_to_move) & Bitboard::from_before(mv.from().index())).count() as u8;
+
+        let (move_id, num_moves) = self.calculate_move_encoding(pos, mv);
+
+        let our_pieces = pos.pieces_bb(side_to_move);
+        let num_pieces = our_pieces.count();
+
+        self.writer
+            .add_bits_le8(piece_id, used_bits_safe(num_pieces as u64));
+        self.writer
+            .add_bits_le8(move_id as u8, used_bits_safe(num_moves));
+
+        let score_delta = signed_to_unsigned(score - self.last_score);
+
+        self.writer
+            .add_bits_vle16(score_delta, SCORE_VLE_BLOCK_SIZE);
+
+        self.last_score = -score;
+
+        self.num_plies += 1;
+    }
+
+    fn calculate_move_encoding(&self, pos: &Position, mv: Move) -> (u32, u64) {
         let side_to_move = pos.side_to_move();
         let our_pieces = pos.pieces_bb(side_to_move);
         let their_pieces = pos.pieces_bb(!side_to_move);
         let occupied = our_pieces | their_pieces;
 
-        let piece_id =
-            (pos.pieces_bb(side_to_move) & Bitboard::from_before(mv.from().index())).count() as u8;
         let mut num_moves = 0u64;
         let mut move_id;
         let pt = pos.piece_at(mv.from()).piece_type();
@@ -99,6 +91,7 @@ impl PackedMoveScoreList {
 
                 let ep_square = pos.ep_square();
                 let mut attack_targets = their_pieces;
+
                 if ep_square != Square::NONE {
                     attack_targets |= Bitboard::from_square(ep_square);
                 }
@@ -162,14 +155,8 @@ impl PackedMoveScoreList {
             }
         }
 
-        let num_pieces = our_pieces.count();
-        self.add_bits_le8(piece_id, used_bits_safe(num_pieces as u64));
-        self.add_bits_le8(move_id as u8, used_bits_safe(num_moves));
+        debug_assert!(move_id < u8::MAX as u32);
 
-        let score_delta = signed_to_unsigned(score - self.last_score);
-        self.add_bits_vle16(score_delta, SCORE_VLE_BLOCK_SIZE);
-        self.last_score = -score;
-
-        self.num_plies += 1;
+        (move_id, num_moves)
     }
 }

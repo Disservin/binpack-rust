@@ -113,9 +113,10 @@ impl CompressedTrainingDataEntryWriter {
         self.packed_size += 2;
 
         if self.movelist.num_plies > 0 {
-            self.packed_entries[self.packed_size..self.packed_size + self.movelist.movetext.len()]
-                .copy_from_slice(&self.movelist.movetext);
-            self.packed_size += self.movelist.movetext.len();
+            let movetext = self.movelist.movetext();
+            self.packed_entries[self.packed_size..self.packed_size + movetext.len()]
+                .copy_from_slice(&movetext);
+            self.packed_size += movetext.len();
         }
     }
 }
