@@ -56,6 +56,16 @@ fn main() {
 _More examples can be found in the [examples](./examples) directory._  
 _If you are doing some counting keep in mind to use a `u64` type for the counter._
 
+## Compression
+
+When compressing new data, it is advised to store the entire continuation of the actual game.
+This will allow for a much better compression ratio.  
+Failure to do so will result in a larger file size, than compared to other alternatives.
+
+## Performance Comparison
+
+Slightly faster when compiled with bmi2 because of _pdep_u64 trick which is missing in the upstream version.
+
 ## EBNF
 
 The extended Backus-Naur form (EBNF) of the binpack format is as follows:
@@ -96,16 +106,6 @@ VARLEN_INT = ? Variable-length encoded signed integer ? ;
 CompressedPosition = ? 24-byte compressed chess position ? ;
 CompressedMove = ? 2-byte compressed chess move ? ;
 ```
-
-## Compression
-
-When compressing new data, it is advised to store the entire continuation of the actual game.
-This will allow for a much better compression ratio.  
-Failure to do so will result in a larger file size, than compared to other alternatives.
-
-## Performance Comparison
-
-Slightly faster when compiled with bmi2 because of _pdep_u64 trick which is missing in the upstream version.
 
 ## License
 
