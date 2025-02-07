@@ -27,6 +27,8 @@ pub enum CompressedWriterError {
 
 type Result<T> = std::result::Result<T, CompressedWriterError>;
 
+/// Write Stockfish binpacks from TrainingDataEntry's
+/// to a file.
 #[derive(Debug)]
 pub struct CompressedTrainingDataEntryWriter {
     output_file: CompressedTrainingDataFile,
