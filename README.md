@@ -56,6 +56,47 @@ fn main() {
 _More examples can be found in the [examples](./examples) directory._  
 _If you are doing some counting keep in mind to use a `u64` type for the counter._
 
+## EBNF
+
+The extended Backus-Naur form (EBNF) of the binpack format is as follows:
+
+```
+(* BINP Format EBNF Specification *)
+File = { Block } ;
+Block = ChunkHeader , { Chain } ;
+ChunkHeader = Magic , ChunkSize ;
+Magic = '"BINP"' ;
+ChunkSize = UINT32LE ;  (* 4 bytes, little endian *)
+Chain = Stem , Count , MoveText ;
+Stem = Position , Move , Score , PlyResult , Rule50 ;
+Count = UINT16BE ;  (* 2 bytes, big endian *)
+MoveText = { MoveScore } ;
+
+(* Stem components - total 32 bytes )
+Position = CompressedPosition ;  ( 24 bytes *)
+Move = CompressedMove ;  (* 2 bytes *)
+Score = INT16BE ;  (* 2 bytes, big endian, signed *)
+PlyResult = UINT8 ;  (* 2 byte, big endian unsigned *)
+Rule50 = UINT16BE ;  (* 2 bytes, big endian *)
+
+(* MoveText components *)
+MoveScore = EncodedMove , EncodedScore ;
+
+(* Encoded components )
+EncodedMove = VARLEN_UINT ;  ( Variable length encoding *)
+EncodedScore = VARLEN_INT ;  (* Variable length encoding *)
+
+(* Terminal symbols *)
+UINT32LE = ? 4-byte unsigned integer in little-endian format ? ;
+UINT16BE = ? 2-byte unsigned integer in big-endian format ? ;
+INT16BE = ? 2-byte signed integer in big-endian format ? ;
+UINT8 = ? 1-byte unsigned integer ? ;
+VARLEN_UINT = ? Variable-length encoded unsigned integer ? ;
+VARLEN_INT = ? Variable-length encoded signed integer ? ;
+CompressedPosition = ? 24-byte compressed chess position ? ;
+CompressedMove = ? 2-byte compressed chess move ? ;
+```
+
 ## Compression
 
 When compressing new data, it is advised to store the entire continuation of the actual game.
