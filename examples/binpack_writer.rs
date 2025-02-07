@@ -55,4 +55,6 @@ fn main() {
     for entry in entries.iter() {
         writer.write_entry(entry).unwrap();
     }
+
+    // The writer must be either manually flushed (not advised) or be dropped to flush any remaining data.
 }

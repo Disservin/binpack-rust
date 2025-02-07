@@ -40,6 +40,8 @@ pub struct CompressedTrainingDataEntryWriter {
 impl CompressedTrainingDataEntryWriter {
     /// Create a new CompressedTrainingDataEntryWriter,
     /// writing to the file at the given path.
+    /// The file will only be completely saved when the writer is dropped!
+    ///
     /// # Examples
     ///
     /// ```
@@ -65,7 +67,7 @@ impl CompressedTrainingDataEntryWriter {
         Ok(writer)
     }
 
-    /// Write a single entry to the file.
+    /// Write a single entry to the file
     pub fn write_entry(&mut self, entry: &TrainingDataEntry) -> Result<()> {
         let is_cont = self.last_entry.is_continuation(entry);
 
@@ -107,6 +109,28 @@ impl CompressedTrainingDataEntryWriter {
         Ok(())
     }
 
+    /// Flush the buffer to the file, automatically called when the writer is dropped
+    pub fn flush(&mut self) -> Result<()> {
+        if self.packed_size > 0 {
+            if !self.is_first {
+                self.write_movelist();
+            }
+
+            match self
+                .output_file
+                .append(&self.packed_entries[..self.packed_size])
+            {
+                Ok(_) => {}
+                Err(e) => {
+                    return Err(CompressedWriterError::Io(e));
+                }
+            }
+            self.packed_size = 0;
+        }
+
+        Ok(())
+    }
+
     fn write_movelist(&mut self) {
         self.packed_entries[self.packed_size] = (self.movelist.num_plies >> 8) as u8;
         self.packed_entries[self.packed_size + 1] = self.movelist.num_plies as u8;
@@ -123,18 +147,8 @@ impl CompressedTrainingDataEntryWriter {
 
 impl Drop for CompressedTrainingDataEntryWriter {
     fn drop(&mut self) {
-        if self.packed_size > 0 {
-            if !self.is_first {
-                self.write_movelist();
-            }
-
-            if let Err(e) = self
-                .output_file
-                .append(&self.packed_entries[..self.packed_size])
-            {
-                eprintln!("Error writing final chunk: {}", e);
-            }
-            self.packed_size = 0;
+        if let Err(e) = self.flush() {
+            eprintln!("Error flushing writer: {}", e);
         }
     }
 }
