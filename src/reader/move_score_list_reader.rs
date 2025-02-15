@@ -1,5 +1,4 @@
 use crate::{
-    arithmetic::{nth_set_bit_index, unsigned_to_signed, used_bits_safe},
     chess::{
         attacks,
         bitboard::Bitboard,
@@ -9,7 +8,10 @@ use crate::{
         piecetype::PieceType,
         r#move::Move,
     },
-    entry::TrainingDataEntry,
+    common::{
+        arithmetic::{nth_set_bit_index, unsigned_to_signed, used_bits_safe},
+        entry::TrainingDataEntry,
+    },
 };
 
 use super::bitreader::BitReader;

@@ -1,7 +1,7 @@
 use sfbinpack::CompressedTrainingDataEntryReader;
 
 fn main() {
-    let mut reader = CompressedTrainingDataEntryReader::new("mybinpack.binpack").unwrap();
+    let mut reader = CompressedTrainingDataEntryReader::new("./test/ep1.binpack").unwrap();
 
     while reader.has_next() {
         let entry = reader.next();

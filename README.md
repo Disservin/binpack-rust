@@ -56,6 +56,17 @@ fn main() {
 _More examples can be found in the [examples](./examples) directory._  
 _If you are doing some counting keep in mind to use a `u64` type for the counter._
 
+## Examples
+
+To run the examples in the `examples` directory, use the following command:
+
+```shell
+cargo run --release --example <example_name>
+```
+
+`binpack_reader` - Read a binpack file and print the contents.
+`binpack_writer` - Write a binpack file from a list of positions.
+
 ## Compression
 
 When compressing new data, it is advised to store the entire continuation of the actual game.
