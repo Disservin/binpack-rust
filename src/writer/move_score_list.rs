@@ -1,5 +1,4 @@
 use crate::{
-    arithmetic::{signed_to_unsigned, used_bits_safe},
     chess::{
         attacks,
         bitboard::Bitboard,
@@ -10,7 +9,10 @@ use crate::{
         position::Position,
         r#move::{Move, MoveType},
     },
-    TrainingDataEntry,
+    common::{
+        arithmetic::{signed_to_unsigned, used_bits_safe},
+        entry::TrainingDataEntry,
+    },
 };
 
 use super::bitwriter::BitWriter;

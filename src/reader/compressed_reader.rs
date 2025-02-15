@@ -1,7 +1,7 @@
 use std::io::{self};
 use thiserror::Error;
 
-use crate::{
+use crate::common::{
     binpack_error::BinpackError, compressed_training_file::CompressedTrainingDataFile,
     entry::PackedTrainingDataEntry, entry::TrainingDataEntry,
 };

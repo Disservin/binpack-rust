@@ -1,11 +1,13 @@
-use crate::{
-    chess::{position::Position, r#move::Move},
-    compressed_training_file::CompressedTrainingDataFile,
-    entry::PackedTrainingDataEntry,
-    TrainingDataEntry,
-};
 use std::io::{self};
 use thiserror::Error;
+
+use crate::{
+    chess::{position::Position, r#move::Move},
+    common::{
+        compressed_training_file::CompressedTrainingDataFile, entry::PackedTrainingDataEntry,
+        entry::TrainingDataEntry,
+    },
+};
 
 use super::move_score_list::PackedMoveScoreList;
 

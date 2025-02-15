@@ -1,9 +1,7 @@
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 
-use crate::binpack_error::{BinpackError, Result};
-
-// use crate::reader::move_score_list_reader::BinpackError;
+use super::binpack_error::{BinpackError, Result};
 
 const HEADER_SIZE: usize = 8;
 

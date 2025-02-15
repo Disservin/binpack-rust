@@ -1,6 +1,7 @@
-use crate::{
+use crate::chess::{position::Position, r#move::Move};
+
+use super::{
     arithmetic::{signed_to_unsigned, unsigned_to_signed},
-    chess::{position::Position, r#move::Move},
     compressed_move::CompressedMove,
     compressed_position::CompressedPosition,
 };
