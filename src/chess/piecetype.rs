@@ -13,8 +13,16 @@ impl PieceType {
     /// Create a piece type from an ordinal, must be in the range [0, 6]
     #[inline(always)]
     pub const fn from_ordinal(value: u8) -> Self {
-        debug_assert!(value < 7);
-        unsafe { std::mem::transmute(value) }
+        match value {
+            0 => Self::Pawn,
+            1 => Self::Knight,
+            2 => Self::Bishop,
+            3 => Self::Rook,
+            4 => Self::Queen,
+            5 => Self::King,
+            6 => Self::None,
+            _ => panic!("Invalid ordinal value for PieceType"),
+        }
     }
 
     /// 0 for Pawn, 1 for Knight, 2 for Bishop,
