@@ -13,7 +13,7 @@ pub struct TrainingDataEntry {
     pub pos: Position,
     /// The which will be played on this position.
     pub mv: Move,
-    /// The score of the position.
+    /// The score of the position. Relative to the side to move of the current position.
     pub score: i16,
     /// The game ply of the position.
     pub ply: u16,
