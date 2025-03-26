@@ -125,6 +125,15 @@ impl CompressedTrainingDataEntryReader {
         !self.is_end
     }
 
+    /// Check if the next entry is a continuation of the last returned entry from next()
+    pub fn is_next_entry_continuation(&self) -> bool {
+        if let Some(ref reader) = self.movelist_reader {
+            return reader.reader.has_next();
+        }
+
+        false
+    }
+
     /// Get the next TrainingDataEntry
     pub fn next(&mut self) -> TrainingDataEntry {
         if let Some(ref mut reader) = self.movelist_reader {

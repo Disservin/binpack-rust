@@ -21,7 +21,8 @@ fn main() {
     while reader.has_next() {
         let entry = reader.next();
 
-        // writer.write_entry(&entry).unwrap();
+        // Check if the next entry is a continuation of the current entry
+        // reader.is_next_entry_continuation();
 
         num_entries += 1;
 
