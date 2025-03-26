@@ -12,12 +12,10 @@ pub struct FlatSquareOffset {
 
 impl FlatSquareOffset {
     pub const fn new(files: i32, ranks: i32) -> Self {
-        // Assuming File has 8 variants (standard chess board)
         const FILE_CARDINALITY: i32 = 8;
 
         let offset = files + ranks * FILE_CARDINALITY;
 
-        // Rust equivalent of the C++ assertions
         debug_assert!(offset >= i8::MIN as i32);
         debug_assert!(offset <= i8::MAX as i32);
 
@@ -26,12 +24,10 @@ impl FlatSquareOffset {
         }
     }
 
-    // Default constructor equivalent
     pub const fn default() -> Self {
         Self { value: 0 }
     }
 
-    // Negation operator
     pub const fn neg(&self) -> Self {
         Self { value: -self.value }
     }

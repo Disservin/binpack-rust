@@ -76,7 +76,6 @@ impl CompressedMove {
     // }
 
     pub const fn move_type(&self) -> MoveType {
-        // Assuming MoveType implements From<u16>
         MoveType::from_ordinal((self.packed >> (16 - 2)) as u8)
     }
 
