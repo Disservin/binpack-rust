@@ -158,4 +158,19 @@ mod tests {
     fn test_unsigned_to_signed_zero() {
         assert_eq!(unsigned_to_signed(0), 0);
     }
+
+    #[test]
+    fn test_unsigned_to_signed_one() {
+        assert_eq!(unsigned_to_signed(1), -1);
+    }
+
+    #[test]
+    fn test_unsigned_to_signed_two() {
+        assert_eq!(unsigned_to_signed(2), 1);
+    }
+
+    #[test]
+    fn test_unsigned_to_signed_three() {
+        assert_eq!(unsigned_to_signed(3), -2);
+    }
 }

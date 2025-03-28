@@ -16,7 +16,7 @@ or define it in your `Cargo.toml` file (change version).
 
 ```
 [dependencies]
-binpack = { version = "0.1.0", features = ["bmi2"] }
+binpack = { version = "0.4.3", features = ["bmi2"] }
 ```
 
 ## Usage
@@ -32,7 +32,7 @@ use sfbinpack::CompressedTrainingDataEntryReader;
 
 fn main() {
     let mut reader = CompressedTrainingDataEntryReader::new(
-        "test80.binpack", // path to file
+        "test80.binpack",
     )
     .unwrap();
 
@@ -46,9 +46,6 @@ fn main() {
         println!("ply {}", entry.ply);
         println!("result {}", entry.result);
         println!("\n");
-
-        // progress percentage
-        // let percentage = reader.read_bytes() as f64 / reader.file_size() as f64 * 100.0;
     }
 }
 ```
@@ -67,21 +64,19 @@ cargo run --release --example <example_name>
 `binpack_reader` - Read a binpack file and print the contents.
 `binpack_writer` - Write a binpack file from a list of positions.
 
-## Compression
-
-When compressing new data, it is advised to store the entire continuation of the actual game.
-This will allow for a much better compression ratio.  
-Failure to do so will result in a larger file size, than compared to other alternatives.
-
 ## Performance Comparison
 
 Slightly faster when compiled with bmi2 because of _pdep_u64 trick which is missing in the upstream version.
 
-## EBNF
+## Anatomy
 
-The extended Backus-Naur form (EBNF) of the binpack format is as follows:
+![Binpack](./img/binpack2x.png)
 
-```
+<!-- ## EBNF -->
+
+<!-- The extended Backus-Naur form (EBNF) of the binpack format is as follows: -->
+
+<!-- ```
 (* BINP Format EBNF Specification *)
 File = { Block } ;
 Block = ChunkHeader , { Chain } ;
@@ -116,7 +111,13 @@ VARLEN_UINT = ? Variable-length encoded unsigned integer ? ;
 VARLEN_INT = ? Variable-length encoded signed integer ? ;
 CompressedPosition = ? 24-byte compressed chess position ? ;
 CompressedMove = ? 2-byte compressed chess move ? ;
-```
+``` -->
+
+## Compression
+
+When compressing new data, it is advised to store the entire continuation of the actual game.
+This will allow for a much better compression ratio.  
+Failure to do so will result in a larger file size, than compared to other alternatives.
 
 ## License
 
