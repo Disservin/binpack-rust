@@ -2,7 +2,10 @@
 
 Rust port of the Stockfish binpack reader from the [C++ version](https://github.com/official-stockfish/Stockfish/blob/tools/src/extra/nnue_data_binpack_format.h).
 
-Binpacks store chess positions and their evaluations in a compact format. Instead of storing complete positions, they store the differences between moves. This makes them very space efficient - using only 2.5 bytes per position on average.
+Binpacks store chess positions and their evaluations in a compact format.
+Instead of storing complete positions, they store the differences between moves.
+This makes them very space efficient - using only 2.5 bytes per position on
+average. See [Anatomy](#anatomy) for more details.
 
 ## Compile
 
