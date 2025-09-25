@@ -7,7 +7,7 @@ fn main() {
         let entry = reader.next();
 
         println!("entry:");
-        println!("fen {}", entry.pos.fen());
+        println!("fen {}", entry.pos.fen().unwrap());
         println!("uci move {:?}", entry.mv.as_uci());
         println!("score {}", entry.score);
         println!("ply {}", entry.ply);

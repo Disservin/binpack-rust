@@ -15,7 +15,8 @@ fn main() {
     // to achieve the best compression ratio.
     let entries = vec![
         TrainingDataEntry {
-            pos: Position::from_fen("1q5b/1r5k/4p2p/1b2P1pN/3p4/6PP/1nP3B1/1Q2B1K1 w - - 0 35"),
+            pos: Position::from_fen("1q5b/1r5k/4p2p/1b2P1pN/3p4/6PP/1nP3B1/1Q2B1K1 w - - 0 35")
+                .unwrap(),
             mv: Move::new(
                 Square::new(10),
                 Square::new(26),
@@ -27,7 +28,8 @@ fn main() {
             result: 0,
         },
         TrainingDataEntry {
-            pos: Position::from_fen("1q5b/1r5k/4p2p/1b2P1pN/2Pp4/6PP/1n4B1/1Q2B1K1 b - - 0 35"),
+            pos: Position::from_fen("1q5b/1r5k/4p2p/1b2P1pN/2Pp4/6PP/1n4B1/1Q2B1K1 b - - 0 35")
+                .unwrap(),
             mv: Move::new(
                 Square::new(27),
                 Square::new(19),
@@ -39,7 +41,8 @@ fn main() {
             result: 0,
         },
         TrainingDataEntry {
-            pos: Position::from_fen("1q5b/1r5k/4p2p/1b2P1pN/2P5/3p2PP/1n4B1/1Q2B1K1 w - - 0 36"),
+            pos: Position::from_fen("1q5b/1r5k/4p2p/1b2P1pN/2P5/3p2PP/1n4B1/1Q2B1K1 w - - 0 36")
+                .unwrap(),
             mv: Move::new(
                 Square::new(14),
                 Square::new(49),

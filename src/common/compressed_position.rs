@@ -228,7 +228,7 @@ mod tests {
         let pos = compressed_pos.decompress();
 
         assert_eq!(
-            pos.fen(),
+            pos.fen().unwrap(),
             "1r3rk1/p2qnpb1/6pp/P1p1p3/3nN3/2QP2P1/R3PPBP/2B2RK1 b - - 0 1"
         );
     }
@@ -258,7 +258,8 @@ mod tests {
     #[test]
     fn test_compress_decompress() {
         let pos =
-            Position::from_fen("1r3rk1/p2qnpb1/6pp/P1p1p3/3nN3/2QP2P1/R3PPBP/2B2RK1 b - - 0 1");
+            Position::from_fen("1r3rk1/p2qnpb1/6pp/P1p1p3/3nN3/2QP2P1/R3PPBP/2B2RK1 b - - 0 1")
+                .unwrap();
 
         let compressed_pos = CompressedPosition::compress(&pos);
         let decompressed_pos = compressed_pos.decompress();
@@ -268,7 +269,8 @@ mod tests {
 
     #[test]
     fn test_compress_decompress_2() {
-        let pos = Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        let pos =
+            Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
 
         let compressed_pos = CompressedPosition::compress(&pos);
         let decompressed_pos = compressed_pos.decompress();
@@ -278,13 +280,15 @@ mod tests {
 
     #[test]
     fn test_compress_decompress_3() {
-        let pos = Position::from_fen("2r3k1/4bpp1/2Q1p2P/p3P3/1p6/4B1P1/P1r2PK1/3R1R2 b - - 0 30");
+        let pos = Position::from_fen("2r3k1/4bpp1/2Q1p2P/p3P3/1p6/4B1P1/P1r2PK1/3R1R2 b - - 0 30")
+            .unwrap();
 
         let compressed_pos = CompressedPosition::compress(&pos);
         let decompressed_pos = compressed_pos.decompress();
 
         let position_without_fmt =
-            Position::from_fen("2r3k1/4bpp1/2Q1p2P/p3P3/1p6/4B1P1/P1r2PK1/3R1R2 b - - 0 1");
+            Position::from_fen("2r3k1/4bpp1/2Q1p2P/p3P3/1p6/4B1P1/P1r2PK1/3R1R2 b - - 0 1")
+                .unwrap();
 
         assert_eq!(position_without_fmt, decompressed_pos);
     }

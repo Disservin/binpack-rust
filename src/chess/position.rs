@@ -29,6 +29,13 @@ pub struct Position {
     enpassant: Square,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PositionError {
+    InvalidFEN,
+}
+
+type Result<T> = std::result::Result<T, PositionError>;
+
 impl Default for Position {
     fn default() -> Self {
         Self::new()
@@ -313,7 +320,7 @@ impl Position {
     }
 
     /// Returns the FEN representation of the position
-    pub fn fen(&self) -> String {
+    pub fn fen(&self) -> Result<String> {
         let mut fen = String::new();
 
         // pieces
@@ -339,8 +346,12 @@ impl Position {
                         PieceType::Rook => 'r',
                         PieceType::Queen => 'q',
                         PieceType::King => 'k',
-                        _ => panic!("Invalid piece type"),
+                        _ => '?',
                     };
+
+                    if c == '?' {
+                        return Err(PositionError::InvalidFEN);
+                    }
 
                     if piece.color() == Color::White {
                         c = c.to_ascii_uppercase();
@@ -400,18 +411,18 @@ impl Position {
         fen.push(' ');
         fen.push_str(&self.fullm.to_string());
 
-        fen
+        Ok(fen)
     }
 
     /// Create a position from a FEN string
-    pub fn from_fen(fen: &str) -> Self {
+    pub fn from_fen(fen: &str) -> Result<Self> {
         let mut pos = Self::new();
-        pos.parse_fen(fen);
-        pos
+        pos.parse_fen(fen)?;
+        Ok(pos)
     }
 
     /// Parse a FEN string and set the position
-    fn parse_fen(&mut self, fen: &str) {
+    fn parse_fen(&mut self, fen: &str) -> Result<()> {
         let mut parts = fen.split_whitespace();
 
         let mut rank = 7;
@@ -437,8 +448,12 @@ impl Position {
                     'r' => Piece::new(PieceType::Rook, color),
                     'q' => Piece::new(PieceType::Queen, color),
                     'k' => Piece::new(PieceType::King, color),
-                    _ => panic!("Invalid piece type"),
+                    _ => Piece::none(),
                 };
+
+                if piece == Piece::none() {
+                    return Err(PositionError::InvalidFEN);
+                }
 
                 self.place(piece, Square::new(rank * 8 + file as u32));
                 file += 1;
@@ -469,6 +484,8 @@ impl Position {
 
         self.halfm = parts.next().unwrap().parse().unwrap();
         self.fullm = parts.next().unwrap().parse().unwrap();
+
+        Ok(())
     }
 
     /// Check if a square is attacked by the given color

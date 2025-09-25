@@ -150,7 +150,8 @@ mod test {
         let expected = TrainingDataEntry {
             pos: Position::from_fen(
                 "1r3rk1/p2qnpb1/6pp/P1p1p3/3nN3/2QP2P1/R3PPBP/2B2RK1 b - - 2 20",
-            ),
+            )
+            .unwrap(),
             mv: Move::new(
                 Square::new(61),
                 Square::new(58),
