@@ -18,7 +18,7 @@ pub struct TrainingDataEntry {
     /// The game ply of the position.
     pub ply: u16,
     /// The game result of the position.
-    /// 1, 0, -1 for white win, draw, white loss respectively.
+    /// 1, 0, -1 for win, draw, loss for the side to move (like with score).
     pub result: i16,
 }
 
