@@ -11,7 +11,7 @@ use sfbinpack::{
 };
 
 fn main() {
-      let file = OpenOptions::new()
+    let file = OpenOptions::new()
         .read(true)
         .write(true)
         .create(true)
@@ -19,7 +19,7 @@ fn main() {
         .open("mynew.binpack")
         .unwrap();
 
-    let mut writer = CompressedTrainingDataEntryWriter::new(file, false).unwrap();
+    let mut writer = CompressedTrainingDataEntryWriter::new(file).unwrap();
 
     // When writing a binpack entries must preferably be a contiuation of the previous entry
     // to achieve the best compression ratio.

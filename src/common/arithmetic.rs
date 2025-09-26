@@ -79,7 +79,7 @@ pub fn unsigned_to_signed(r: u16) -> i16 {
 
 #[inline]
 pub fn signed_to_unsigned(a: i16) -> u16 {
-    let mut r = unsafe { i16::cast_unsigned(a) };
+    let mut r = i16::cast_unsigned(a);
     if r & 0x8000 != 0 {
         r ^= 0x7FFF;
     }

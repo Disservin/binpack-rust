@@ -94,7 +94,7 @@ impl<T: Write + Read + Seek> CompressedTrainingDataEntryReader<T> {
         let mut reader = Self {
             chunk,
             movelist_reader: None,
-            input_file: CompressedTrainingDataFile::new(file, false, false)?,
+            input_file: CompressedTrainingDataFile::new(file)?,
             offset: 0,
             file_size: 0, //std::fs::metadata(file.)?.len(),
             is_end: false,

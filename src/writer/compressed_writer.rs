@@ -54,11 +54,11 @@ impl<T: Write + Read + Seek> CompressedTrainingDataEntryWriter<T> {
     /// use sfbinpack::CompressedTrainingDataEntryWriter;
     ///
     /// let file = File::options().read(true).write(true).create(true).open("test/ep1.binpack").unwrap();
-    /// let mut writer = CompressedTrainingDataEntryWriter::new(file, false).unwrap();
+    /// let mut writer = CompressedTrainingDataEntryWriter::new(file).unwrap();
     /// ```
-    pub fn new(file: T, append: bool) -> Result<Self> {
+    pub fn new(file: T) -> Result<Self> {
         let writer = Self {
-            output_file: Some(CompressedTrainingDataFile::new(file, append, true)?),
+            output_file: Some(CompressedTrainingDataFile::new(file)?),
             last_entry: TrainingDataEntry {
                 ply: 0xFFFF, // never a continuation
                 result: 0x7FFF,
@@ -170,7 +170,10 @@ impl<T: Write + Read + Seek> Drop for CompressedTrainingDataEntryWriter<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::{self, OpenOptions};
+    use std::{
+        fs::{self, OpenOptions},
+        io::Cursor,
+    };
 
     use super::*;
 
@@ -237,7 +240,7 @@ mod tests {
                 .open("test/ep_new1.binpack")
                 .unwrap();
 
-            let mut writer = CompressedTrainingDataEntryWriter::new(file, false).unwrap();
+            let mut writer = CompressedTrainingDataEntryWriter::new(file).unwrap();
 
             for entry in entries.iter() {
                 writer.write_entry(entry).unwrap();
@@ -300,7 +303,7 @@ mod tests {
         ];
 
         let cursor = Cursor::new(Vec::new());
-        let mut writer = CompressedTrainingDataEntryWriter::new(cursor, false).unwrap();
+        let mut writer = CompressedTrainingDataEntryWriter::new(cursor).unwrap();
 
         for entry in entries.iter() {
             writer.write_entry(entry).unwrap();
@@ -309,7 +312,7 @@ mod tests {
         writer.flush().unwrap();
 
         let mut cursor = writer.into_inner().unwrap();
-        cursor.seek(SeekFrom::Start(0)).unwrap();
+        cursor.seek(io::SeekFrom::Start(0)).unwrap();
 
         let mut read_bytes = vec![];
         cursor.read_to_end(&mut read_bytes).unwrap();
