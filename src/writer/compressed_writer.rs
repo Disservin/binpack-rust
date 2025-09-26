@@ -34,7 +34,7 @@ type Result<T> = std::result::Result<T, CompressedWriterError>;
 /// to a file.
 #[derive(Debug)]
 pub struct CompressedTrainingDataEntryWriter<T: Write + Read + Seek> {
-    output_file: CompressedTrainingDataFile<T>,
+    output_file: Option<CompressedTrainingDataFile<T>>,
     last_entry: TrainingDataEntry,
     movelist: PackedMoveScoreList,
     packed_size: usize,
@@ -58,7 +58,7 @@ impl<T: Write + Read + Seek> CompressedTrainingDataEntryWriter<T> {
     /// ```
     pub fn new(file: T, append: bool) -> Result<Self> {
         let writer = Self {
-            output_file: CompressedTrainingDataFile::new(file, append, true)?,
+            output_file: Some(CompressedTrainingDataFile::new(file, append, true)?),
             last_entry: TrainingDataEntry {
                 ply: 0xFFFF, // never a continuation
                 result: 0x7FFF,
@@ -74,8 +74,8 @@ impl<T: Write + Read + Seek> CompressedTrainingDataEntryWriter<T> {
         Ok(writer)
     }
 
-    pub fn into_inner(self) -> Result<T> {
-        Ok(self.output_file.into_inner()?)
+    pub fn into_inner(&mut self) -> io::Result<T> {
+        self.output_file.take().unwrap().into_inner()
     }
 
     /// Write a single entry to the file
@@ -93,6 +93,8 @@ impl<T: Write + Read + Seek> CompressedTrainingDataEntryWriter<T> {
             if self.packed_size >= SUGGESTED_CHUNK_SIZE {
                 match self
                     .output_file
+                    .as_mut()
+                    .unwrap()
                     .append(&self.packed_entries[..self.packed_size])
                 {
                     Ok(_) => {}
@@ -129,6 +131,8 @@ impl<T: Write + Read + Seek> CompressedTrainingDataEntryWriter<T> {
 
             match self
                 .output_file
+                .as_mut()
+                .unwrap()
                 .append(&self.packed_entries[..self.packed_size])
             {
                 Ok(_) => {}
@@ -156,13 +160,13 @@ impl<T: Write + Read + Seek> CompressedTrainingDataEntryWriter<T> {
     }
 }
 
-// impl<T: Write + Read + Seek> Drop for CompressedTrainingDataEntryWriter<T> {
-//     fn drop(&mut self) {
-//         if let Err(e) = self.flush() {
-//             eprintln!("Error flushing writer: {}", e);
-//         }
-//     }
-// }
+impl<T: Write + Read + Seek> Drop for CompressedTrainingDataEntryWriter<T> {
+    fn drop(&mut self) {
+        if let Err(e) = self.flush() {
+            eprintln!("Error flushing writer: {}", e);
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -238,8 +242,6 @@ mod tests {
             for entry in entries.iter() {
                 writer.write_entry(entry).unwrap();
             }
-
-            writer.flush();
         }
 
         // check that ep_new1.binpack equals ep1.binpack
