@@ -1,3 +1,5 @@
+use std::fs::OpenOptions;
+
 use sfbinpack::{
     chess::{
         coords::Square,
@@ -9,7 +11,15 @@ use sfbinpack::{
 };
 
 fn main() {
-    let mut writer = CompressedTrainingDataEntryWriter::new("mynew.binpack", false).unwrap();
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .append(false)
+        .open("mynew.binpack")
+        .unwrap();
+
+    let mut writer = CompressedTrainingDataEntryWriter::new(file).unwrap();
 
     // When writing a binpack entries must preferably be a contiuation of the previous entry
     // to achieve the best compression ratio.

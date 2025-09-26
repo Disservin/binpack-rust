@@ -1,4 +1,5 @@
 use std::io::{self};
+use std::io::{Read, Seek, Write};
 use thiserror::Error;
 
 use crate::common::{
@@ -27,10 +28,10 @@ type Result<T> = std::result::Result<T, CompressedReaderError>;
 /// Reads Stockfish binpacks and returns a TrainingDataEntry
 /// for each encoded entry.
 #[derive(Debug)]
-pub struct CompressedTrainingDataEntryReader {
+pub struct CompressedTrainingDataEntryReader<T: Write + Read + Seek> {
     chunk: Vec<u8>,
     movelist_reader: Option<OwnedMoveScoreListReader>,
-    input_file: CompressedTrainingDataFile,
+    input_file: CompressedTrainingDataFile<T>,
     offset: usize,
     file_size: u64,
     is_end: bool,
@@ -71,29 +72,31 @@ EncodedScore = VARLEN_INT             (* Variable length encoding *)
 */
 
 // EBNF: File
-impl CompressedTrainingDataEntryReader {
+impl<T: Write + Read + Seek> CompressedTrainingDataEntryReader<T> {
     /// Create a new CompressedTrainingDataEntryReader,
     /// reading from the file at the given path.
     /// # Examples
     ///
     /// ```
+    /// use std::fs::File;
     /// use sfbinpack::CompressedTrainingDataEntryReader;
     ///
-    /// let mut reader = CompressedTrainingDataEntryReader::new("test/ep1.binpack").unwrap();
+    /// let file = File::options().read(true).write(false).create(false).open("test/ep1.binpack").unwrap();
+    /// let mut reader = CompressedTrainingDataEntryReader::new(file).unwrap();
     ///
     /// while reader.has_next() {
     ///     let entry = reader.next();
     /// }
     /// ```
-    pub fn new(path: &str) -> Result<Self> {
+    pub fn new(file: T) -> Result<Self> {
         let chunk = Vec::with_capacity(SUGGESTED_CHUNK_SIZE);
 
         let mut reader = Self {
             chunk,
             movelist_reader: None,
-            input_file: CompressedTrainingDataFile::new(path, false, false)?,
+            input_file: CompressedTrainingDataFile::new(file)?,
             offset: 0,
-            file_size: std::fs::metadata(path)?.len(),
+            file_size: 0, //std::fs::metadata(file.)?.len(),
             is_end: false,
         };
 
@@ -211,6 +214,8 @@ impl CompressedTrainingDataEntryReader {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::OpenOptions;
+
     use crate::chess::{
         coords::Square,
         piece::Piece,
@@ -222,7 +227,14 @@ mod tests {
 
     #[test]
     fn test_reader_simple() {
-        let mut reader = CompressedTrainingDataEntryReader::new("./test/ep1.binpack").unwrap();
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(false)
+            .append(false)
+            .open("./test/ep1.binpack")
+            .unwrap();
+        let mut reader = CompressedTrainingDataEntryReader::new(file).unwrap();
 
         let mut entries: Vec<TrainingDataEntry> = Vec::new();
 

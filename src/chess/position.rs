@@ -44,7 +44,7 @@ impl Default for Position {
 
 impl Position {
     pub fn new() -> Self {
-        return Self {
+        Self {
             bb: [
                 0x00ff_0000_0000_ff00,
                 0x4200_0000_0000_0042,
@@ -81,7 +81,7 @@ impl Position {
             halfm: 0,
             fullm: 1,
             enpassant: Square::NONE,
-        };
+        }
     }
 
     pub fn empty() -> Self {
