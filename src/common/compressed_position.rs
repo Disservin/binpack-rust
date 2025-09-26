@@ -56,7 +56,7 @@ impl CompressedPosition {
     }
 
     pub fn decompress(&self) -> Position {
-        let mut pos = Position::new();
+        let mut pos = Position::empty();
         pos.set_castling_rights(CastlingRights::NONE);
 
         let mut decompress_piece = |sq: Square, nibble: u8| {
