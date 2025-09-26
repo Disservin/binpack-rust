@@ -44,6 +44,47 @@ impl Default for Position {
 
 impl Position {
     pub fn new() -> Self {
+        return Self {
+            bb: [
+                0x00ff_0000_0000_ff00,
+                0x4200_0000_0000_0042,
+                0x2400_0000_0000_0024,
+                0x8100_0000_0000_0081,
+                0x0800_0000_0000_0008,
+                0x1000_0000_0000_0010,
+            ],
+            bb_color: [0xffff, 0xffff_0000_0000_0000],
+            pieces: std::array::from_fn(|i| match i {
+                0..=15 => match i {
+                    0 | 7 => Piece::new(PieceType::Rook, Color::White),
+                    1 | 6 => Piece::new(PieceType::Knight, Color::White),
+                    2 | 5 => Piece::new(PieceType::Bishop, Color::White),
+                    3 => Piece::new(PieceType::Queen, Color::White),
+                    4 => Piece::new(PieceType::King, Color::White),
+                    8..=15 => Piece::new(PieceType::Pawn, Color::White),
+                    _ => unreachable!(),
+                },
+                16..=47 => Piece::none(),
+                48..=63 => match i {
+                    48..=55 => Piece::new(PieceType::Pawn, Color::Black),
+                    56 | 63 => Piece::new(PieceType::Rook, Color::Black),
+                    57 | 62 => Piece::new(PieceType::Knight, Color::Black),
+                    58 | 61 => Piece::new(PieceType::Bishop, Color::Black),
+                    59 => Piece::new(PieceType::Queen, Color::Black),
+                    60 => Piece::new(PieceType::King, Color::Black),
+                    _ => unreachable!(),
+                },
+                _ => unreachable!(),
+            }),
+            stm: Color::White,
+            castling_rights: CastlingRights::ALL,
+            halfm: 0,
+            fullm: 1,
+            enpassant: Square::NONE,
+        };
+    }
+
+    pub fn empty() -> Self {
         Self {
             bb: [0; 6],
             bb_color: [0; 2],
@@ -416,7 +457,7 @@ impl Position {
 
     /// Create a position from a FEN string
     pub fn from_fen(fen: &str) -> Result<Self> {
-        let mut pos = Self::new();
+        let mut pos = Self::empty();
         pos.parse_fen(fen)?;
         Ok(pos)
     }
@@ -541,5 +582,30 @@ impl Position {
         let mut pos = *self;
         pos.do_move(mv);
         pos
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const STARTPOS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+    #[test]
+    fn test_startpos() {
+        let pos = Position::from_fen(STARTPOS).unwrap();
+        assert_eq!(pos.fen().unwrap(), STARTPOS);
+    }
+
+    #[test]
+    fn test_new() {
+        let pos = Position::new();
+        assert_eq!(pos.fen().unwrap(), STARTPOS);
+    }
+
+    #[test]
+    fn test_new_eq_fen() {
+        let pos = Position::new();
+        assert_eq!(pos, Position::from_fen(STARTPOS).unwrap());
     }
 }
