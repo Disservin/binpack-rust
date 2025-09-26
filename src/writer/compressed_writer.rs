@@ -1,4 +1,5 @@
 use std::io::{self};
+use std::io::{Cursor, Read, Seek, SeekFrom, Write};
 use thiserror::Error;
 
 use crate::{
@@ -32,8 +33,8 @@ type Result<T> = std::result::Result<T, CompressedWriterError>;
 /// Write Stockfish binpacks from TrainingDataEntry's
 /// to a file.
 #[derive(Debug)]
-pub struct CompressedTrainingDataEntryWriter {
-    output_file: CompressedTrainingDataFile,
+pub struct CompressedTrainingDataEntryWriter<T: Write + Read + Seek> {
+    output_file: CompressedTrainingDataFile<T>,
     last_entry: TrainingDataEntry,
     movelist: PackedMoveScoreList,
     packed_size: usize,
@@ -41,7 +42,7 @@ pub struct CompressedTrainingDataEntryWriter {
     is_first: bool,
 }
 
-impl CompressedTrainingDataEntryWriter {
+impl<T: Write + Read + Seek> CompressedTrainingDataEntryWriter<T> {
     /// Create a new CompressedTrainingDataEntryWriter,
     /// writing to the file at the given path.
     /// The file will only be completely saved when the writer is dropped!
@@ -49,13 +50,15 @@ impl CompressedTrainingDataEntryWriter {
     /// # Examples
     ///
     /// ```
+    /// use std::fs::File;
     /// use sfbinpack::CompressedTrainingDataEntryWriter;
     ///
-    /// let mut writer = CompressedTrainingDataEntryWriter::new("test/ep1.binpack", false).unwrap();
+    /// let file = File::options().read(true).write(true).create(true).open("test/ep1.binpack").unwrap();
+    /// let mut writer = CompressedTrainingDataEntryWriter::new(file, false).unwrap();
     /// ```
-    pub fn new(path: &str, append: bool) -> Result<Self> {
+    pub fn new(file: T, append: bool) -> Result<Self> {
         let writer = Self {
-            output_file: CompressedTrainingDataFile::new(path, append, true)?,
+            output_file: CompressedTrainingDataFile::new(file, append, true)?,
             last_entry: TrainingDataEntry {
                 ply: 0xFFFF, // never a continuation
                 result: 0x7FFF,
@@ -69,6 +72,10 @@ impl CompressedTrainingDataEntryWriter {
             is_first: true,
         };
         Ok(writer)
+    }
+
+    pub fn into_inner(self) -> Result<T> {
+        Ok(self.output_file.into_inner()?)
     }
 
     /// Write a single entry to the file
@@ -149,17 +156,17 @@ impl CompressedTrainingDataEntryWriter {
     }
 }
 
-impl Drop for CompressedTrainingDataEntryWriter {
-    fn drop(&mut self) {
-        if let Err(e) = self.flush() {
-            eprintln!("Error flushing writer: {}", e);
-        }
-    }
-}
+// impl<T: Write + Read + Seek> Drop for CompressedTrainingDataEntryWriter<T> {
+//     fn drop(&mut self) {
+//         if let Err(e) = self.flush() {
+//             eprintln!("Error flushing writer: {}", e);
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
+    use std::fs::{self, OpenOptions};
 
     use super::*;
 
@@ -218,12 +225,21 @@ mod tests {
 
         {
             // delete file
-            let mut writer =
-                CompressedTrainingDataEntryWriter::new("test/ep_new1.binpack", false).unwrap();
+            let file = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .append(false)
+                .open("test/ep_new1.binpack")
+                .unwrap();
+
+            let mut writer = CompressedTrainingDataEntryWriter::new(file, false).unwrap();
 
             for entry in entries.iter() {
                 writer.write_entry(entry).unwrap();
             }
+
+            writer.flush();
         }
 
         // check that ep_new1.binpack equals ep1.binpack
@@ -233,5 +249,70 @@ mod tests {
         assert_eq!(file1_bytes, file2_bytes);
 
         let _ = fs::remove_file("test/ep_new1.binpack");
+    }
+
+    #[test]
+    fn test_compressed_writer_in_memory_file() {
+        let entries = vec![
+            TrainingDataEntry {
+                pos: Position::from_fen("1q5b/1r5k/4p2p/1b2P1pN/3p4/6PP/1nP3B1/1Q2B1K1 w - - 0 35")
+                    .unwrap(),
+                mv: Move::new(
+                    Square::new(10),
+                    Square::new(26),
+                    MoveType::Normal,
+                    Piece::none(),
+                ),
+                score: -201,
+                ply: 68,
+                result: 0,
+            },
+            TrainingDataEntry {
+                pos: Position::from_fen("1q5b/1r5k/4p2p/1b2P1pN/2Pp4/6PP/1n4B1/1Q2B1K1 b - - 0 35")
+                    .unwrap(),
+                mv: Move::new(
+                    Square::new(27),
+                    Square::new(19),
+                    MoveType::Normal,
+                    Piece::none(),
+                ),
+                score: 254,
+                ply: 69,
+                result: 0,
+            },
+            TrainingDataEntry {
+                pos: Position::from_fen(
+                    "1q5b/1r5k/4p2p/1b2P1pN/2P5/3p2PP/1n4B1/1Q2B1K1 w - - 0 36",
+                )
+                .unwrap(),
+                mv: Move::new(
+                    Square::new(14),
+                    Square::new(49),
+                    MoveType::Normal,
+                    Piece::none(),
+                ),
+                score: -220,
+                ply: 70,
+                result: 0,
+            },
+        ];
+
+        let cursor = Cursor::new(Vec::new());
+        let mut writer = CompressedTrainingDataEntryWriter::new(cursor, false).unwrap();
+
+        for entry in entries.iter() {
+            writer.write_entry(entry).unwrap();
+        }
+
+        writer.flush().unwrap();
+
+        let mut cursor = writer.into_inner().unwrap();
+        cursor.seek(SeekFrom::Start(0)).unwrap();
+
+        let mut read_bytes = vec![];
+        cursor.read_to_end(&mut read_bytes).unwrap();
+
+        let expected_bytes = fs::read("test/ep1.binpack").unwrap();
+        assert_eq!(read_bytes, expected_bytes);
     }
 }

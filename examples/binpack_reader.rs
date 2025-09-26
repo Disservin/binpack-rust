@@ -1,7 +1,17 @@
+use std::fs::OpenOptions;
+
 use sfbinpack::CompressedTrainingDataEntryReader;
 
 fn main() {
-    let mut reader = CompressedTrainingDataEntryReader::new("./test/ep1.binpack").unwrap();
+      let file = OpenOptions::new()
+        .read(true)
+        .write(false)
+        .create(false)
+        .append(false)
+        .open("./test/ep1.binpack")
+        .unwrap();
+
+    let mut reader = CompressedTrainingDataEntryReader::new(file).unwrap();
 
     while reader.has_next() {
         let entry = reader.next();
