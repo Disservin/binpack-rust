@@ -31,7 +31,7 @@ fn main() {
 
         num_entries += 1;
 
-        if num_entries % 1000000 == 0 {
+        if num_entries.is_multiple_of(1000000) {
             let percentage = reader.read_bytes() as f64 / reader.file_size() as f64 * 100.0;
 
             print_update(num_entries, percentage, t0);

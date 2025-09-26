@@ -1,5 +1,5 @@
 use std::io::{self};
-use std::io::{Cursor, Read, Seek, SeekFrom, Write};
+use std::io::{Read, Seek, Write};
 use thiserror::Error;
 
 use crate::common::{
