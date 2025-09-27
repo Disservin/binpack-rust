@@ -1,12 +1,12 @@
+use std::io::Write;
 use std::io::{self};
-use std::io::{Read, Seek, Write};
 use thiserror::Error;
 
 use crate::{
     chess::{position::Position, r#move::Move},
     common::{
-        compressed_training_file::CompressedTrainingDataFile, entry::PackedTrainingDataEntry,
-        entry::TrainingDataEntry,
+        compressed_training_file_writer::CompressedTrainingDataFileWriter,
+        entry::PackedTrainingDataEntry, entry::TrainingDataEntry,
     },
 };
 
@@ -33,8 +33,8 @@ type Result<T> = std::result::Result<T, CompressedWriterError>;
 /// Write Stockfish binpacks from TrainingDataEntry's
 /// to a file.
 #[derive(Debug)]
-pub struct CompressedTrainingDataEntryWriter<T: Write + Read + Seek> {
-    output_file: Option<CompressedTrainingDataFile<T>>,
+pub struct CompressedTrainingDataEntryWriter<T: Write> {
+    output_file: Option<CompressedTrainingDataFileWriter<T>>,
     last_entry: TrainingDataEntry,
     movelist: PackedMoveScoreList,
     packed_size: usize,
@@ -42,7 +42,7 @@ pub struct CompressedTrainingDataEntryWriter<T: Write + Read + Seek> {
     is_first: bool,
 }
 
-impl<T: Write + Read + Seek> CompressedTrainingDataEntryWriter<T> {
+impl<T: Write> CompressedTrainingDataEntryWriter<T> {
     /// Create a new CompressedTrainingDataEntryWriter,
     /// writing to the file at the given path.
     /// The file will only be completely saved when the writer is dropped!
@@ -58,7 +58,7 @@ impl<T: Write + Read + Seek> CompressedTrainingDataEntryWriter<T> {
     /// ```
     pub fn new(file: T) -> Result<Self> {
         let writer = Self {
-            output_file: Some(CompressedTrainingDataFile::new(file)?),
+            output_file: Some(CompressedTrainingDataFileWriter::new(file)?),
             last_entry: TrainingDataEntry {
                 ply: 0xFFFF, // never a continuation
                 result: 0x7FFF,
@@ -160,7 +160,7 @@ impl<T: Write + Read + Seek> CompressedTrainingDataEntryWriter<T> {
     }
 }
 
-impl<T: Write + Read + Seek> Drop for CompressedTrainingDataEntryWriter<T> {
+impl<T: Write> Drop for CompressedTrainingDataEntryWriter<T> {
     fn drop(&mut self) {
         if let Err(e) = self.flush() {
             eprintln!("Error flushing writer: {}", e);
@@ -172,7 +172,7 @@ impl<T: Write + Read + Seek> Drop for CompressedTrainingDataEntryWriter<T> {
 mod tests {
     use std::{
         fs::{self, OpenOptions},
-        io::Cursor,
+        io::{Cursor, Read, Seek},
     };
 
     use super::*;
