@@ -11,6 +11,8 @@ fn main() {
         .open("/mnt/g/stockfish-data/test80-2024/test80-2024-06-jun-2tb7p.min-v2.v6.binpack")
         .unwrap();
 
+    let filesize = file.metadata().unwrap().len();
+
     let mut reader = CompressedTrainingDataEntryReader::new(file).unwrap();
 
     let mut num_entries: u64 = 0;
@@ -32,7 +34,7 @@ fn main() {
         num_entries += 1;
 
         if num_entries.is_multiple_of(1000000) {
-            let percentage = reader.read_bytes() as f64 / reader.file_size() as f64 * 100.0;
+            let percentage = reader.read_bytes() as f64 / filesize as f64 * 100.0;
 
             print_update(num_entries, percentage, t0);
         }
