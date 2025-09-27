@@ -1,9 +1,9 @@
 use std::io::{self};
-use std::io::{Read, Seek, Write};
+use std::io::{Read, Seek};
 use thiserror::Error;
 
 use crate::common::{
-    binpack_error::BinpackError, compressed_training_file::CompressedTrainingDataFile,
+    binpack_error::BinpackError, compressed_training_file_reader::CompressedTrainingDataFileReader,
     entry::PackedTrainingDataEntry, entry::TrainingDataEntry,
 };
 
@@ -28,12 +28,11 @@ type Result<T> = std::result::Result<T, CompressedReaderError>;
 /// Reads Stockfish binpacks and returns a TrainingDataEntry
 /// for each encoded entry.
 #[derive(Debug)]
-pub struct CompressedTrainingDataEntryReader<T: Write + Read + Seek> {
+pub struct CompressedTrainingDataEntryReader<T: Read + Seek> {
     chunk: Vec<u8>,
     movelist_reader: Option<OwnedMoveScoreListReader>,
-    input_file: CompressedTrainingDataFile<T>,
+    input_file: Option<CompressedTrainingDataFileReader<T>>,
     offset: usize,
-    file_size: u64,
     is_end: bool,
 }
 
@@ -72,7 +71,7 @@ EncodedScore = VARLEN_INT             (* Variable length encoding *)
 */
 
 // EBNF: File
-impl<T: Write + Read + Seek> CompressedTrainingDataEntryReader<T> {
+impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
     /// Create a new CompressedTrainingDataEntryReader,
     /// reading from the file at the given path.
     /// # Examples
@@ -94,17 +93,16 @@ impl<T: Write + Read + Seek> CompressedTrainingDataEntryReader<T> {
         let mut reader = Self {
             chunk,
             movelist_reader: None,
-            input_file: CompressedTrainingDataFile::new(file)?,
+            input_file: Some(CompressedTrainingDataFileReader::new(file)?),
             offset: 0,
-            file_size: 0, //std::fs::metadata(file.)?.len(),
             is_end: false,
         };
 
-        if !reader.input_file.has_next_chunk() {
+        if !reader.input_file.as_mut().unwrap().has_next_chunk() {
             reader.is_end = true;
             return Err(CompressedReaderError::EndOfFile);
         } else {
-            reader.chunk = match reader.input_file.read_next_chunk() {
+            reader.chunk = match reader.input_file.as_mut().unwrap().read_next_chunk() {
                 Ok(chunk) => chunk,
                 Err(e) => return Err(CompressedReaderError::BinpackError(e)),
             };
@@ -113,14 +111,13 @@ impl<T: Write + Read + Seek> CompressedTrainingDataEntryReader<T> {
         Ok(reader)
     }
 
-    /// Get the size of the file in bytes
-    pub fn file_size(&self) -> u64 {
-        self.file_size
+    pub fn into_inner(&mut self) -> io::Result<T> {
+        self.input_file.take().unwrap().into_inner()
     }
 
     /// Get how much of the file has been read so far
     pub fn read_bytes(&self) -> u64 {
-        self.input_file.read_bytes()
+        self.input_file.as_ref().unwrap().read_bytes()
     }
 
     /// Check if there are more TrainingDataEntry to read
@@ -201,8 +198,8 @@ impl<T: Write + Read + Seek> CompressedTrainingDataEntryReader<T> {
     // EBNF: BLOCK
     fn fetch_next_chunk_if_needed(&mut self) {
         if self.offset + PackedTrainingDataEntry::byte_size() + 2 > self.chunk.len() {
-            if self.input_file.has_next_chunk() {
-                let chunk = self.input_file.read_next_chunk().unwrap();
+            if self.input_file.as_mut().unwrap().has_next_chunk() {
+                let chunk = self.input_file.as_mut().unwrap().read_next_chunk().unwrap();
                 self.chunk = chunk;
                 self.offset = 0;
             } else {
