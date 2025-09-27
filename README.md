@@ -34,10 +34,8 @@ cargo add sfbinpack
 use sfbinpack::CompressedTrainingDataEntryReader;
 
 fn main() {
-    let mut reader = CompressedTrainingDataEntryReader::new(
-        "test80.binpack",
-    )
-    .unwrap();
+    let file = File::open("data.binpack").unwrap();
+    let mut reader = CompressedTrainingDataEntryReader::new(file).unwrap();
 
     while reader.has_next() {
         let entry = reader.next();
