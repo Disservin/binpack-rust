@@ -1,15 +1,14 @@
-use std::{fs::OpenOptions, io::Write};
+use std::{
+    fs::{File, OpenOptions},
+    io::Write,
+};
 
 use sfbinpack::CompressedTrainingDataEntryReader;
 
 fn main() {
-    let file = OpenOptions::new()
-        .read(true)
-        .write(false)
-        .create(true)
-        .append(false)
-        .open("/mnt/g/stockfish-data/test80-2024/test80-2024-06-jun-2tb7p.min-v2.v6.binpack")
-        .unwrap();
+    let file =
+        File::open("/mnt/g/stockfish-data/test80-2024/test80-2024-06-jun-2tb7p.min-v2.v6.binpack")
+            .unwrap();
 
     let filesize = file.metadata().unwrap().len();
 
