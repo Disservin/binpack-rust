@@ -1,6 +1,5 @@
 use std::io::{self};
 use std::io::{Read, Seek};
-use std::rc::Rc;
 use thiserror::Error;
 
 use crate::common::{
@@ -30,7 +29,7 @@ type Result<T> = std::result::Result<T, CompressedReaderError>;
 /// for each encoded entry.
 #[derive(Debug)]
 pub struct CompressedTrainingDataEntryReader<T: Read + Seek> {
-    chunk: Rc<Vec<u8>>,
+    chunk: Vec<u8>,
     movelist_reader: Option<PackedMoveScoreListReader>,
     input_file: Option<CompressedTrainingDataFileReader<T>>,
     offset: usize,
@@ -87,7 +86,7 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
         let chunk = Vec::with_capacity(SUGGESTED_CHUNK_SIZE);
 
         let mut reader = Self {
-            chunk: Rc::new(chunk),
+            chunk: chunk,
             movelist_reader: None,
             input_file: Some(CompressedTrainingDataFileReader::new(file)?),
             offset: 0,
@@ -99,7 +98,7 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
             return Err(CompressedReaderError::EndOfFile);
         } else {
             reader.chunk = match reader.input_file.as_mut().unwrap().read_next_chunk() {
-                Ok(chunk) => Rc::new(chunk),
+                Ok(chunk) => chunk,
                 Err(e) => return Err(CompressedReaderError::BinpackError(e)),
             };
         }
@@ -154,22 +153,12 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
 
         if num_plies > 0 {
             // EBNF: MoveText
-            // let chunk_ref = &self.chunk[self.offset..];
 
-            // should be safe lol, someone rewrite this please
-            // let reader = unsafe {
-            //     std::mem::transmute::<
-            //         PackedMoveScoreListReader<'_>,
-            //         PackedMoveScoreListReader<'static>,
-            //     >(PackedMoveScoreListReader::new(entry, chunk_ref, num_plies))
-            // };
-
-            // let reader = PackedMoveScoreListReader::new(entry, chunk_ref.to_vec().into_boxed_slice(), num_plies);
+            let chunk_ref = &self.chunk[self.offset..];
 
             self.movelist_reader = Some(PackedMoveScoreListReader::new(
                 entry,
-                Rc::clone(&self.chunk),
-                self.offset,
+                chunk_ref.as_ptr(),
                 num_plies,
             ));
         } else {
@@ -203,7 +192,7 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
         if self.offset + PackedTrainingDataEntry::byte_size() + 2 > self.chunk.len() {
             if self.input_file.as_mut().unwrap().has_next_chunk() {
                 let chunk = self.input_file.as_mut().unwrap().read_next_chunk().unwrap();
-                self.chunk = Rc::new(chunk);
+                self.chunk = chunk;
                 self.offset = 0;
             } else {
                 self.is_end = true;

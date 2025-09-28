@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use crate::{
     chess::{
         attacks,
@@ -28,9 +26,9 @@ pub struct PackedMoveScoreListReader {
 }
 
 impl PackedMoveScoreListReader {
-    pub fn new(entry: TrainingDataEntry, movetext: Rc<Vec<u8>>, base_offset: usize, num_plies: u16) -> Self {
+    pub fn new(entry: TrainingDataEntry, movetext: *const u8, num_plies: u16) -> Self {
         Self {
-            reader: BitReader::new(movetext, base_offset),
+            reader: BitReader::new(movetext),
             num_plies,
             entry,
             num_read_plies: 0,
