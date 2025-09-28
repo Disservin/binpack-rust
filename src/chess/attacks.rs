@@ -437,7 +437,8 @@ mod tests {
         nodes
     }
 
-    fn split_perft(pos: &Position, depth: u32) -> u64 {
+    fn split_perft(fen: &str, depth: u32) -> u64 {
+        let pos = Position::from_fen(fen).unwrap();
         let moves = pseudo_legal_moves(&pos);
         let mut total_nodes = 0;
 
@@ -493,42 +494,34 @@ mod tests {
 
     #[test]
     fn test_perft_startpos_depth_1() {
-        let pos = &Position::from_fen(STARTPOS).unwrap();
-        assert_eq!(split_perft(pos, 1), 20);
+        assert_eq!(split_perft(STARTPOS, 1), 20);
     }
 
     #[test]
     fn test_perft_startpos_depth_2() {
-        assert_eq!(split_perft(&Position::from_fen(STARTPOS).unwrap(), 2), 400);
+        assert_eq!(split_perft(STARTPOS, 2), 400);
     }
 
     #[test]
     fn test_perft_startpos_depth_3() {
-        assert_eq!(split_perft(&Position::from_fen(STARTPOS).unwrap(), 3), 8902);
+        assert_eq!(split_perft(STARTPOS, 3), 8902);
     }
 
     #[test]
     fn test_perft_startpos_depth_4() {
-        assert_eq!(
-            split_perft(&Position::from_fen(STARTPOS).unwrap(), 4),
-            197281
-        );
+        assert_eq!(split_perft(STARTPOS, 4), 197281);
     }
 
     #[test]
     fn test_perft_startpos_depth_5() {
-        assert_eq!(
-            split_perft(&Position::from_fen(STARTPOS).unwrap(), 5),
-            4865609
-        );
+        assert_eq!(split_perft(STARTPOS, 5), 4865609);
     }
 
     #[test]
     fn test_perft_startpos_depth_7() {
         assert_eq!(
             split_perft(
-                &Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-                    .unwrap(),
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
                 7
             ),
             3195901860
@@ -539,8 +532,7 @@ mod tests {
     fn test_perft_custom_position_1() {
         assert_eq!(
             split_perft(
-                &Position::from_fen("rnbqkbnr/ppp1pppp/3p4/8/8/2P5/PP1PPPPP/RNBQKBNR w KQkq - 0 2")
-                    .unwrap(),
+                "rnbqkbnr/ppp1pppp/3p4/8/8/2P5/PP1PPPPP/RNBQKBNR w KQkq - 0 2",
                 1
             ),
             21
@@ -551,8 +543,7 @@ mod tests {
     fn test_perft_custom_position_2() {
         assert_eq!(
             split_perft(
-                &Position::from_fen("rnbqkbnr/pppppppp/8/8/8/2P5/PP1PPPPP/RNBQKBNR b KQkq - 0 1")
-                    .unwrap(),
+                "rnbqkbnr/pppppppp/8/8/8/2P5/PP1PPPPP/RNBQKBNR b KQkq - 0 1",
                 2
             ),
             420
@@ -563,10 +554,7 @@ mod tests {
     fn test_perft_castle_position() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
-                )
-                .unwrap(),
+                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
                 1
             ),
             48
@@ -577,10 +565,7 @@ mod tests {
     fn test_perft_complex_position_1() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1ppqpb1/bnN1pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 1 1"
-                )
-                .unwrap(),
+                "r3k2r/p1ppqpb1/bnN1pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 1 1",
                 1
             ),
             41
@@ -591,10 +576,7 @@ mod tests {
     fn test_perft_complex_position_2() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/P1N2Q2/1PPBBPpP/R3K2R w KQkq - 0 2"
-                )
-                .unwrap(),
+                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/P1N2Q2/1PPBBPpP/R3K2R w KQkq - 0 2",
                 1
             ),
             48
@@ -605,10 +587,7 @@ mod tests {
     fn test_perft_complex_position_32() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1"
-                )
-                .unwrap(),
+                "r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1",
                 1
             ),
             45
@@ -619,10 +598,7 @@ mod tests {
     fn test_perft_complex_position_3() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
-                )
-                .unwrap(),
+                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
                 2
             ),
             2039
@@ -633,10 +609,7 @@ mod tests {
     fn test_perft_complex_position_4() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/P1N2Q1p/1PPBBPPP/R3K2R b KQkq - 0 1"
-                )
-                .unwrap(),
+                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/P1N2Q1p/1PPBBPPP/R3K2R b KQkq - 0 1",
                 2
             ),
             2186
@@ -647,10 +620,7 @@ mod tests {
     fn test_perft_complex_position_25() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/5Q2/PPPBBPpP/RN2K2R w KQkq - 0 2"
-                )
-                .unwrap(),
+                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/5Q2/PPPBBPpP/RN2K2R w KQkq - 0 2",
                 1
             ),
             47
@@ -661,10 +631,7 @@ mod tests {
     fn test_perft_complex_position_5() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
-                )
-                .unwrap(),
+                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
                 3
             ),
             97862
@@ -675,10 +642,7 @@ mod tests {
     fn test_perft_complex_position_6() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1p1qpb1/bn1ppnp1/1B1PN3/1p2P3/P1N2Q1p/1PPB1PPP/R3K2R b KQkq - 1 2"
-                )
-                .unwrap(),
+                "r3k2r/p1p1qpb1/bn1ppnp1/1B1PN3/1p2P3/P1N2Q1p/1PPB1PPP/R3K2R b KQkq - 1 2",
                 1
             ),
             7
@@ -689,10 +653,7 @@ mod tests {
     fn test_perft_complex_position_7() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1p1qpb1/bn1ppnp1/3PN3/1p2P3/P1N2Q1p/1PPBBPPP/R3K2R w KQkq - 0 2"
-                )
-                .unwrap(),
+                "r3k2r/p1p1qpb1/bn1ppnp1/3PN3/1p2P3/P1N2Q1p/1PPBBPPP/R3K2R w KQkq - 0 2",
                 2
             ),
             2135
@@ -703,10 +664,7 @@ mod tests {
     fn test_perft_complex_position_8() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1ppqpb1/bn2p1p1/3PN3/1p2n3/P1N2Q1p/1PPBBPPP/R3K2R w KQkq - 0 2"
-                )
-                .unwrap(),
+                "r3k2r/p1ppqpb1/bn2p1p1/3PN3/1p2n3/P1N2Q1p/1PPBBPPP/R3K2R w KQkq - 0 2",
                 2
             ),
             2717
@@ -717,10 +675,7 @@ mod tests {
     fn test_perft_complex_position_9() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/P1N2Q1p/1PPBBPPP/R3K2R b KQkq - 0 1"
-                )
-                .unwrap(),
+                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/P1N2Q1p/1PPBBPPP/R3K2R b KQkq - 0 1",
                 3
             ),
             94405
@@ -731,10 +686,7 @@ mod tests {
     fn test_perft_complex_position_10() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
-                )
-                .unwrap(),
+                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
                 4
             ),
             4085603
@@ -745,10 +697,7 @@ mod tests {
     fn test_perft_complex_position_11() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
-                )
-                .unwrap(),
+                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
                 5
             ),
             193690690
@@ -758,10 +707,7 @@ mod tests {
     #[test]
     fn test_perft_endgame_position() {
         assert_eq!(
-            split_perft(
-                &Position::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1").unwrap(),
-                7
-            ),
+            split_perft("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7),
             178633661
         );
     }
@@ -770,10 +716,7 @@ mod tests {
     fn test_perft_tactical_position_1() {
         assert_eq!(
             split_perft(
-                &&Position::from_fen(
-                    "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1"
-                )
-                .unwrap(),
+                "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
                 6
             ),
             706045033
@@ -784,8 +727,7 @@ mod tests {
     fn test_perft_tactical_position_2() {
         assert_eq!(
             split_perft(
-                &Position::from_fen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8")
-                    .unwrap(),
+                "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
                 5
             ),
             89941194
@@ -796,10 +738,7 @@ mod tests {
     fn test_perft_tactical_position_3() {
         assert_eq!(
             split_perft(
-                &Position::from_fen(
-                    "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 1"
-                )
-                .unwrap(),
+                "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 1",
                 5
             ),
             164075551
