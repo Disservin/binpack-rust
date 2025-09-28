@@ -31,7 +31,7 @@ name = "sfbinpack"
 path = "src/main.rs"
 
 [profile.release]
-debug = 1
+debug = true
 opt-level = 3
 strip = "none"
 debug-assertions = false
