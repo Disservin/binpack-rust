@@ -11,7 +11,7 @@ use crate::{
         r#move::Move,
     },
     common::{
-        arithmetic::{nth_set_bit_index, unsigned_to_signed, used_bits_safe},
+        arithmetic::{nth_set_bit_index, unsigned_to_signed, used_bits_safe2},
         entry::TrainingDataEntry,
     },
 };
@@ -68,7 +68,7 @@ impl PackedMoveScoreListReader {
 
         let piece_id = self
             .reader
-            .extract_bits_le8(used_bits_safe(our_pieces.count() as u64));
+            .extract_bits_le8(used_bits_safe2(our_pieces.count() as u64));
 
         // Extract the move
         let move_ = self.decode_move(piece_id, occupied);
@@ -138,7 +138,7 @@ impl PackedMoveScoreListReader {
                 if from.rank() == promotion_rank {
                     let move_id = self
                         .reader
-                        .extract_bits_le8(used_bits_safe((destinations_count * 4) as u64));
+                        .extract_bits_le8(used_bits_safe2((destinations_count * 4) as u64));
                     let pt =
                         PieceType::from_ordinal(PieceType::Knight.ordinal() + (move_id % 4) as u8);
                     let promoted_piece = Piece::new(pt, side_to_move);
@@ -149,7 +149,7 @@ impl PackedMoveScoreListReader {
                 } else {
                     let move_id = self
                         .reader
-                        .extract_bits_le8(used_bits_safe(destinations_count as u64));
+                        .extract_bits_le8(used_bits_safe2(destinations_count as u64));
 
                     let idx = nth_set_bit_index(destinations.bits(), move_id as u64);
 
@@ -175,7 +175,7 @@ impl PackedMoveScoreListReader {
                     (castling_rights & our_castling_rights_mask).count_ones() as usize;
 
                 let offset = attacks_size as usize + num_castlings;
-                let move_id = self.reader.extract_bits_le8(used_bits_safe(offset as u64)) as u32;
+                let move_id = self.reader.extract_bits_le8(used_bits_safe2(offset as u64)) as u32;
 
                 if move_id >= attacks_size {
                     let idx = move_id - attacks_size;
@@ -202,7 +202,7 @@ impl PackedMoveScoreListReader {
                 let attacks = attacks::piece_attacks(piece_type, from, occupied) & !our_pieces;
                 let move_id = self
                     .reader
-                    .extract_bits_le8(used_bits_safe(attacks.count() as u64));
+                    .extract_bits_le8(used_bits_safe2(attacks.count() as u64));
                 let idx = nth_set_bit_index(attacks.bits(), move_id as u64);
                 let to = Square::new(idx);
                 Move::normal(from, to)

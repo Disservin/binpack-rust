@@ -153,27 +153,31 @@ impl Position {
         let piece = self.piece_at(from);
         let captured = self.piece_at(to);
         let genuine_capture = captured != Piece::none() && mv.mtype() != MoveType::Castle;
+        let pt = piece.piece_type();
 
         debug_assert!(from != Square::NONE);
         debug_assert!(to != Square::NONE);
         debug_assert!(piece != Piece::none());
 
         // clear piece from start
-        self.remove_piece(self.stm, piece, from);
+        self.remove_piecetype(self.stm, pt, from);
 
         // capture piece
         if genuine_capture {
-            self.remove_piece(!self.stm, captured, to);
+            self.remove_piecetype(!self.stm, captured.piece_type(), to);
+            self.update_castling_rights(from, to);
+        } else if piece.piece_type() == PieceType::King || piece.piece_type() == PieceType::Rook {
+            self.update_castling_rights(from, to);
         }
 
         if mv.mtype() == MoveType::Promotion {
             let promotion = mv.promoted_piece();
             self.place_piece(self.stm, promotion, to);
         } else if mv.mtype() == MoveType::EnPassant {
-            debug_assert!(piece.piece_type() == PieceType::Pawn,);
+            debug_assert!(piece.piece_type() == PieceType::Pawn);
 
             let captured_sq = Square::new(to.index() ^ 8);
-            self.remove_piece(!self.stm, self.piece_at(captured_sq), captured_sq);
+            self.remove_piecetype(!self.stm, PieceType::Pawn, captured_sq);
             self.place_piece(self.stm, piece, to);
         } else if mv.mtype() == MoveType::Normal {
             self.place_piece(self.stm, piece, to);
@@ -193,7 +197,7 @@ impl Position {
 
                 let rook = self.piece_at(to);
 
-                self.remove_piece(self.stm, rook, to);
+                self.remove_piecetype(self.stm, PieceType::Rook, to);
                 self.place_piece(self.stm, rook, rook_to);
                 self.place_piece(self.stm, piece, king_to);
             } else {
@@ -211,7 +215,7 @@ impl Position {
 
                 let rook = self.piece_at(to);
 
-                self.remove_piece(self.stm, rook, to);
+                self.remove_piecetype(self.stm, PieceType::Rook, to);
                 self.place_piece(self.stm, rook, rook_to);
                 self.place_piece(self.stm, piece, king_to);
             }
@@ -220,7 +224,7 @@ impl Position {
         // update state
 
         // Update halfmove clock
-        if genuine_capture || piece.piece_type() == PieceType::Pawn {
+        if genuine_capture || pt == PieceType::Pawn {
             self.halfm = 0;
         } else {
             self.halfm += 1;
@@ -231,14 +235,10 @@ impl Position {
             self.fullm += 1;
         }
 
-        self.update_castling_rights(from, to);
-
         self.enpassant = Square::NONE;
 
         // Update en passant square
-        if piece.piece_type() == PieceType::Pawn
-            && (to.index() as i32 - from.index() as i32).abs() == 16
-        {
+        if pt == PieceType::Pawn && (to.index() as i32 - from.index() as i32).abs() == 16 {
             let ep = Square::new(to.index() ^ 8);
 
             // check if enemy pawn can legally capture the pawn
@@ -357,6 +357,17 @@ impl Position {
         let mask = 1u64 << (sq.index());
         self.bb_color[side as usize] ^= mask;
         self.bb[pc.piece_type().ordinal() as usize] ^= mask;
+        self.pieces[sq.index() as usize] = Piece::none();
+    }
+
+    #[inline(always)]
+    fn remove_piecetype(&mut self, side: Color, pt: PieceType, sq: Square) {
+        debug_assert!(pt != PieceType::None);
+        debug_assert!(sq != Square::NONE);
+
+        let mask = 1u64 << (sq.index());
+        self.bb_color[side as usize] ^= mask;
+        self.bb[pt.ordinal() as usize] ^= mask;
         self.pieces[sq.index() as usize] = Piece::none();
     }
 

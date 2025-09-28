@@ -87,7 +87,7 @@ pub fn signed_to_unsigned(a: i16) -> u16 {
 }
 
 #[inline(always)]
-pub fn used_bits_safe(n: u64) -> usize {
+pub const fn used_bits_safe(n: u64) -> usize {
     if n == 0 {
         return 0;
     }
@@ -96,7 +96,7 @@ pub fn used_bits_safe(n: u64) -> usize {
 }
 
 #[inline(always)]
-pub fn used_bits(n: u64) -> u64 {
+const fn used_bits(n: u64) -> u64 {
     if n == 0 {
         return 0;
     }
@@ -105,9 +105,18 @@ pub fn used_bits(n: u64) -> u64 {
 }
 
 #[inline(always)]
-pub fn msb(n: u64) -> u32 {
+const fn msb(n: u64) -> u32 {
     debug_assert!(n != 0);
     63 ^ n.leading_zeros()
+}
+
+#[inline(always)]
+pub const fn used_bits_safe2(n: u64) -> usize {
+    if n == 0 {
+        0
+    } else {
+        (64 - (n - 1).leading_zeros()) as usize
+    }
 }
 
 #[cfg(test)]
@@ -172,5 +181,26 @@ mod tests {
     #[test]
     fn test_unsigned_to_signed_three() {
         assert_eq!(unsigned_to_signed(3), -2);
+    }
+
+    #[test]
+    fn test_used_bits_safe2() {
+        assert_eq!(used_bits_safe(0), used_bits_safe2(0));
+        assert_eq!(used_bits_safe(1), used_bits_safe2(1));
+
+        assert_eq!(used_bits_safe(2), used_bits_safe2(2));
+        assert_eq!(used_bits_safe(4), used_bits_safe2(4));
+        assert_eq!(used_bits_safe(8), used_bits_safe2(8));
+        assert_eq!(used_bits_safe(1024), used_bits_safe2(1024));
+
+        assert_eq!(used_bits_safe(3), used_bits_safe2(3));
+        assert_eq!(used_bits_safe(7), used_bits_safe2(7));
+        assert_eq!(used_bits_safe(255), used_bits_safe2(255));
+
+        assert_eq!(used_bits_safe(10), used_bits_safe2(10));
+        assert_eq!(used_bits_safe(100), used_bits_safe2(100));
+        assert_eq!(used_bits_safe(12345), used_bits_safe2(12345));
+
+        assert_eq!(used_bits_safe(u64::MAX), used_bits_safe2(u64::MAX));
     }
 }

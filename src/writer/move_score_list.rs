@@ -10,7 +10,7 @@ use crate::{
         r#move::{Move, MoveType},
     },
     common::{
-        arithmetic::{signed_to_unsigned, used_bits_safe},
+        arithmetic::{signed_to_unsigned, used_bits_safe2},
         entry::TrainingDataEntry,
     },
 };
@@ -56,9 +56,9 @@ impl PackedMoveScoreList {
         let num_pieces = our_pieces.count();
 
         self.writer
-            .add_bits_le8(piece_id, used_bits_safe(num_pieces as u64));
+            .add_bits_le8(piece_id, used_bits_safe2(num_pieces as u64));
         self.writer
-            .add_bits_le8(move_id as u8, used_bits_safe(num_moves));
+            .add_bits_le8(move_id as u8, used_bits_safe2(num_moves));
 
         let score_delta = signed_to_unsigned(score - self.last_score);
 
