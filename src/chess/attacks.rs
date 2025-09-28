@@ -15,7 +15,7 @@ const PROMOTION_PIECES: [PieceType; 4] = [
 
 #[inline(always)]
 fn pop_lsb(bb: &mut u64) -> u32 {
-    let idx = bb.trailing_zeros() as u32;
+    let idx = bb.trailing_zeros();
     *bb &= *bb - 1;
     idx
 }
@@ -36,7 +36,7 @@ pub fn pseudo_legal_moves(pos: &Position) -> ArrayVec<Move, 256> {
         let direction: i32 = if side == Color::White { 8 } else { -8 };
         let one_step = from_idx as i32 + direction;
 
-        if one_step >= 0 && one_step < 64 {
+        if (0..64).contains(&one_step) {
             let to_sq = Square::new(one_step as u32);
             if pos.piece_at(to_sq) == Piece::none() {
                 if (side == Color::White && one_step >= 56)
@@ -51,7 +51,7 @@ pub fn pseudo_legal_moves(pos: &Position) -> ArrayVec<Move, 256> {
                     let start_rank = if side == Color::White { 1 } else { 6 };
                     if from_rank == start_rank {
                         let two_step = from_idx as i32 + 2 * direction;
-                        if two_step >= 0 && two_step < 64 {
+                        if (0..64).contains(&two_step) {
                             let mid_sq = Square::new(one_step as u32);
                             let dbl_sq = Square::new(two_step as u32);
                             if pos.piece_at(mid_sq) == Piece::none()
@@ -180,11 +180,9 @@ pub fn pseudo_legal_moves(pos: &Position) -> ArrayVec<Move, 256> {
             let g1 = Square::G1;
             if super_attacks_from_square(f1, side, pos).bits() == 0
                 && super_attacks_from_square(g1, side, pos).bits() == 0
-            {
-                if pos.piece_at(f1) == Piece::none() && pos.piece_at(g1) == Piece::none() {
+                && pos.piece_at(f1) == Piece::none() && pos.piece_at(g1) == Piece::none() {
                     moves.push(Move::castle(king_sq, Square::H1));
                 }
-            }
         }
 
         // White queenside castling
@@ -194,14 +192,12 @@ pub fn pseudo_legal_moves(pos: &Position) -> ArrayVec<Move, 256> {
             let d1 = Square::D1;
             if super_attacks_from_square(c1, side, pos).bits() == 0
                 && super_attacks_from_square(d1, side, pos).bits() == 0
-            {
-                if pos.piece_at(b1) == Piece::none()
+                && pos.piece_at(b1) == Piece::none()
                     && pos.piece_at(c1) == Piece::none()
                     && pos.piece_at(d1) == Piece::none()
                 {
                     moves.push(Move::castle(king_sq, Square::A1));
                 }
-            }
         }
     } else {
         // Black kingside castling
@@ -210,11 +206,9 @@ pub fn pseudo_legal_moves(pos: &Position) -> ArrayVec<Move, 256> {
             let g8 = Square::G8;
             if super_attacks_from_square(f8, side, pos).bits() == 0
                 && super_attacks_from_square(g8, side, pos).bits() == 0
-            {
-                if pos.piece_at(f8) == Piece::none() && pos.piece_at(g8) == Piece::none() {
+                && pos.piece_at(f8) == Piece::none() && pos.piece_at(g8) == Piece::none() {
                     moves.push(Move::castle(king_sq, Square::H8));
                 }
-            }
         }
 
         // Black queenside castling
@@ -224,14 +218,12 @@ pub fn pseudo_legal_moves(pos: &Position) -> ArrayVec<Move, 256> {
             let d8 = Square::D8;
             if super_attacks_from_square(c8, side, pos).bits() == 0
                 && super_attacks_from_square(d8, side, pos).bits() == 0
-            {
-                if pos.piece_at(b8) == Piece::none()
+                && pos.piece_at(b8) == Piece::none()
                     && pos.piece_at(c8) == Piece::none()
                     && pos.piece_at(d8) == Piece::none()
                 {
                     moves.push(Move::castle(king_sq, Square::A8));
                 }
-            }
         }
     }
 
