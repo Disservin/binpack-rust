@@ -3,7 +3,7 @@ use std::fs::OpenOptions;
 use sfbinpack::CompressedTrainingDataEntryReader;
 
 fn main() {
-      let file = OpenOptions::new()
+    let file = OpenOptions::new()
         .read(true)
         .write(false)
         .create(false)

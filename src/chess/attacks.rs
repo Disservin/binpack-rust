@@ -180,9 +180,11 @@ pub fn pseudo_legal_moves(pos: &Position) -> ArrayVec<Move, 256> {
             let g1 = Square::G1;
             if super_attacks_from_square(f1, side, pos).bits() == 0
                 && super_attacks_from_square(g1, side, pos).bits() == 0
-                && pos.piece_at(f1) == Piece::none() && pos.piece_at(g1) == Piece::none() {
-                    moves.push(Move::castle(king_sq, Square::H1));
-                }
+                && pos.piece_at(f1) == Piece::none()
+                && pos.piece_at(g1) == Piece::none()
+            {
+                moves.push(Move::castle(king_sq, Square::H1));
+            }
         }
 
         // White queenside castling
@@ -193,11 +195,11 @@ pub fn pseudo_legal_moves(pos: &Position) -> ArrayVec<Move, 256> {
             if super_attacks_from_square(c1, side, pos).bits() == 0
                 && super_attacks_from_square(d1, side, pos).bits() == 0
                 && pos.piece_at(b1) == Piece::none()
-                    && pos.piece_at(c1) == Piece::none()
-                    && pos.piece_at(d1) == Piece::none()
-                {
-                    moves.push(Move::castle(king_sq, Square::A1));
-                }
+                && pos.piece_at(c1) == Piece::none()
+                && pos.piece_at(d1) == Piece::none()
+            {
+                moves.push(Move::castle(king_sq, Square::A1));
+            }
         }
     } else {
         // Black kingside castling
@@ -206,9 +208,11 @@ pub fn pseudo_legal_moves(pos: &Position) -> ArrayVec<Move, 256> {
             let g8 = Square::G8;
             if super_attacks_from_square(f8, side, pos).bits() == 0
                 && super_attacks_from_square(g8, side, pos).bits() == 0
-                && pos.piece_at(f8) == Piece::none() && pos.piece_at(g8) == Piece::none() {
-                    moves.push(Move::castle(king_sq, Square::H8));
-                }
+                && pos.piece_at(f8) == Piece::none()
+                && pos.piece_at(g8) == Piece::none()
+            {
+                moves.push(Move::castle(king_sq, Square::H8));
+            }
         }
 
         // Black queenside castling
@@ -219,11 +223,11 @@ pub fn pseudo_legal_moves(pos: &Position) -> ArrayVec<Move, 256> {
             if super_attacks_from_square(c8, side, pos).bits() == 0
                 && super_attacks_from_square(d8, side, pos).bits() == 0
                 && pos.piece_at(b8) == Piece::none()
-                    && pos.piece_at(c8) == Piece::none()
-                    && pos.piece_at(d8) == Piece::none()
-                {
-                    moves.push(Move::castle(king_sq, Square::A8));
-                }
+                && pos.piece_at(c8) == Piece::none()
+                && pos.piece_at(d8) == Piece::none()
+            {
+                moves.push(Move::castle(king_sq, Square::A8));
+            }
         }
     }
 

@@ -42,6 +42,7 @@ impl CastlingRights {
     }
 
     /// Get all castling rights for a specific color.
+    #[allow(clippy::self_named_constructors)]
     pub fn castling_rights(color: Color) -> Self {
         match color {
             Color::White => Self::WHITE,
