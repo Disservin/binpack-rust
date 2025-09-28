@@ -30,15 +30,10 @@ type Result<T> = std::result::Result<T, CompressedReaderError>;
 #[derive(Debug)]
 pub struct CompressedTrainingDataEntryReader<T: Read + Seek> {
     chunk: Vec<u8>,
-    movelist_reader: Option<OwnedMoveScoreListReader>,
+    movelist_reader: Option<PackedMoveScoreListReader>,
     input_file: Option<CompressedTrainingDataFileReader<T>>,
     offset: usize,
     is_end: bool,
-}
-
-#[derive(Debug)]
-struct OwnedMoveScoreListReader {
-    reader: PackedMoveScoreListReader<'static>,
 }
 
 /*
@@ -128,7 +123,7 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
     /// Check if the next entry is a continuation of the last returned entry from next()
     pub fn is_next_entry_continuation(&self) -> bool {
         if let Some(ref reader) = self.movelist_reader {
-            return reader.reader.has_next();
+            return reader.has_next();
         }
 
         false
@@ -138,10 +133,10 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
     #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> TrainingDataEntry {
         if let Some(ref mut reader) = self.movelist_reader {
-            let entry = reader.reader.next_entry();
+            let entry = reader.next_entry();
 
-            if !reader.reader.has_next() {
-                self.offset += reader.reader.num_read_bytes();
+            if !reader.has_next() {
+                self.offset += reader.num_read_bytes();
                 self.movelist_reader = None;
                 self.fetch_next_chunk_if_needed();
             }
@@ -161,15 +156,11 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
             // EBNF: MoveText
             let chunk_ref = &self.chunk[self.offset..];
 
-            // should be safe lol, someone rewrite this please
-            let reader = unsafe {
-                std::mem::transmute::<
-                    PackedMoveScoreListReader<'_>,
-                    PackedMoveScoreListReader<'static>,
-                >(PackedMoveScoreListReader::new(entry, chunk_ref, num_plies))
-            };
-
-            self.movelist_reader = Some(OwnedMoveScoreListReader { reader });
+            self.movelist_reader = Some(PackedMoveScoreListReader::new(
+                entry,
+                chunk_ref.as_ptr(),
+                num_plies,
+            ));
         } else {
             self.fetch_next_chunk_if_needed();
         }
