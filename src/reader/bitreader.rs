@@ -1,16 +1,20 @@
+use std::rc::Rc;
+
 #[derive(Debug)]
-pub struct BitReader<'a> {
-    movetext: &'a [u8],
+pub struct BitReader {
+    movetext: Rc<Vec<u8>>,
     read_bits_left: usize,
     read_offset: usize,
+    base_offset: usize,
 }
 
-impl<'a> BitReader<'a> {
-    pub fn new(movetext: &'a [u8]) -> Self {
+impl BitReader {
+    pub fn new(movetext: Rc<Vec<u8>>, base_offset: usize) -> Self {
         Self {
             movetext,
             read_bits_left: 8,
             read_offset: 0,
+            base_offset,
         }
     }
 
@@ -24,15 +28,15 @@ impl<'a> BitReader<'a> {
             self.read_bits_left = 8;
         }
 
-        debug_assert!(self.read_offset < self.movetext.len());
+        debug_assert!(self.base_offset + self.read_offset < self.movetext.len());
 
-        let byte = self.movetext[self.read_offset] << (8 - self.read_bits_left);
+        let byte = self.movetext[self.base_offset + self.read_offset] << (8 - self.read_bits_left);
         let mut bits = byte >> (8 - count);
 
         if count > self.read_bits_left {
             let spill_count = count - self.read_bits_left;
 
-            bits |= self.movetext[self.read_offset + 1] >> (8 - spill_count);
+            bits |= self.movetext[self.base_offset + self.read_offset + 1] >> (8 - spill_count);
             self.read_bits_left += 8;
             self.read_offset += 1;
         }

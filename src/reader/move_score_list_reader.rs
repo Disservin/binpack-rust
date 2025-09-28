@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     chess::{
         attacks,
@@ -17,18 +19,18 @@ use crate::{
 use super::bitreader::BitReader;
 
 #[derive(Debug)]
-pub struct PackedMoveScoreListReader<'a> {
-    reader: BitReader<'a>,
+pub struct PackedMoveScoreListReader {
+    reader: BitReader,
     last_score: i16,
     num_plies: u16,
     num_read_plies: u16,
     entry: TrainingDataEntry,
 }
 
-impl<'a> PackedMoveScoreListReader<'a> {
-    pub fn new(entry: TrainingDataEntry, movetext: &'a [u8], num_plies: u16) -> Self {
+impl PackedMoveScoreListReader {
+    pub fn new(entry: TrainingDataEntry, movetext: Rc<Vec<u8>>, base_offset: usize, num_plies: u16) -> Self {
         Self {
-            reader: BitReader::new(movetext),
+            reader: BitReader::new(movetext, base_offset),
             num_plies,
             entry,
             num_read_plies: 0,
