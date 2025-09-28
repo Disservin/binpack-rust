@@ -17,6 +17,7 @@ default = []
 bmi2 = []
 
 [dependencies]
+arrayvec = "0.7.6"
 thiserror = "2.0.8"
 
 [dev-dependencies]

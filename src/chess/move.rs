@@ -1,7 +1,7 @@
 use crate::chess::{
     castling_rights::CastleType,
     color::Color,
-    coords::{File, Square},
+    coords::{File, Rank, Square},
     piece::Piece,
     piecetype::PieceType,
 };
@@ -166,6 +166,30 @@ impl Move {
                 PieceType::Knight => 'n',
                 _ => panic!("Invalid promotion piece"),
             });
+        }
+
+        // king captures rook
+        if self.move_type == MoveType::Castle {
+            let from = self.from;
+            let to: Square;
+
+            if self.to.file() == File::H {
+                to = if self.from.rank() == Rank::FIRST {
+                    Square::G1
+                } else {
+                    Square::G8
+                };
+            } else if self.to.file() == File::A {
+                to = if self.from.rank() == Rank::FIRST {
+                    Square::C1
+                } else {
+                    Square::C8
+                };
+            } else {
+                panic!("Invalid castling move");
+            }
+
+            return format!("{}{}", from, to);
         }
 
         uci
