@@ -17,7 +17,7 @@ const PROMOTION_PIECES: [PieceType; 4] = [
 fn pop_lsb(bb: &mut u64) -> Square {
     let idx = bb.trailing_zeros();
     *bb &= *bb - 1;
-    Square::new(idx as u32)
+    Square::new(idx)
 }
 
 /// Return every pseudo-legal move for the current position.
@@ -40,7 +40,6 @@ pub fn pseudo_legal_moves(pos: &Position) -> ArrayVec<Move, 256> {
 fn generate_pawn_moves(pos: &Position, side: Color, moves: &mut ArrayVec<Move, 256>) {
     let mut pawns = pos.pieces_bb_color(side, PieceType::Pawn).bits();
     let direction = if side == Color::White { 8 } else { -8 };
-    let start_rank = if side == Color::White { 1 } else { 6 };
     let promotion_rank_start = if side == Color::White { 56 } else { 0 };
     let promotion_rank_end = if side == Color::White { 64 } else { 8 };
 
@@ -52,7 +51,6 @@ fn generate_pawn_moves(pos: &Position, side: Color, moves: &mut ArrayVec<Move, 2
             side,
             from_sq,
             direction,
-            start_rank,
             promotion_rank_start,
             promotion_rank_end,
             moves,
@@ -74,11 +72,12 @@ fn generate_pawn_pushes(
     side: Color,
     from_sq: Square,
     direction: i32,
-    start_rank: u32,
     promotion_start: i32,
     promotion_end: i32,
     moves: &mut ArrayVec<Move, 256>,
 ) {
+    let start_rank = if side == Color::White { 1 } else { 6 };
+
     let one_step = from_sq.index() as i32 + direction;
     if !(0..64).contains(&one_step) || pos.piece_at(Square::new(one_step as u32)) != Piece::none() {
         return;
@@ -210,84 +209,51 @@ fn generate_piece_moves<P: PieceMovement>(
         }
     }
 }
-
 fn generate_castling_moves(pos: &Position, side: Color, moves: &mut ArrayVec<Move, 256>) {
     let king_sq = pos.king_sq(side);
-    let rights = pos.castling_rights();
 
     // Can't castle if in check
-    if super_attacks_from_square(king_sq, side, pos).bits() != 0 {
+    if pieces_attacking_square(king_sq, side, pos).bits() != 0 {
         return;
     }
 
     match side {
+        #[rustfmt::skip]
         Color::White => {
-            try_castle(
-                rights,
-                CastlingRights::WHITE_KING_SIDE,
-                king_sq,
-                &[Square::F1, Square::G1],
-                &[Square::F1, Square::G1],
-                Square::H1,
-                pos,
-                side,
-                moves,
-            );
-            try_castle(
-                rights,
-                CastlingRights::WHITE_QUEEN_SIDE,
-                king_sq,
-                &[Square::C1, Square::D1],
-                &[Square::B1, Square::C1, Square::D1],
-                Square::A1,
-                pos,
-                side,
-                moves,
-            );
+            try_castle(pos, side, moves, CastlingRights::WHITE_KING_SIDE, king_sq, Square::H1);
+            try_castle(pos, side, moves, CastlingRights::WHITE_QUEEN_SIDE, king_sq, Square::A1);
         }
+        #[rustfmt::skip]
         Color::Black => {
-            try_castle(
-                rights,
-                CastlingRights::BLACK_KING_SIDE,
-                king_sq,
-                &[Square::F8, Square::G8],
-                &[Square::F8, Square::G8],
-                Square::H8,
-                pos,
-                side,
-                moves,
-            );
-            try_castle(
-                rights,
-                CastlingRights::BLACK_QUEEN_SIDE,
-                king_sq,
-                &[Square::C8, Square::D8],
-                &[Square::B8, Square::C8, Square::D8],
-                Square::A8,
-                pos,
-                side,
-                moves,
-            );
+            try_castle(pos, side, moves, CastlingRights::BLACK_KING_SIDE, king_sq, Square::H8);
+            try_castle(pos, side, moves, CastlingRights::BLACK_QUEEN_SIDE, king_sq, Square::A8);
         }
     }
 }
 
 fn try_castle(
-    rights: CastlingRights,
-    castle_right: CastlingRights,
-    king_sq: Square,
-    check_path_squares: &[Square],
-    path_squares: &[Square],
-    rook_sq: Square,
     pos: &Position,
     side: Color,
     moves: &mut ArrayVec<Move, 256>,
+    castle_right: CastlingRights,
+    king_sq: Square,
+    rook_sq: Square,
 ) {
+    let rights = pos.castling_rights();
     if !rights.contains(castle_right) {
         return;
     }
 
-    // Check path is clear and not attacked
+    // Determine squares based on rook position
+    #[rustfmt::skip]
+    let (check_path_squares, path_squares) = match rook_sq {
+        Square::H1 => (&[Square::F1, Square::G1][..], &[Square::F1, Square::G1][..]),
+        Square::A1 => (&[Square::C1, Square::D1][..], &[Square::B1, Square::C1, Square::D1][..]),
+        Square::H8 => (&[Square::F8, Square::G8][..], &[Square::F8, Square::G8][..]),
+        Square::A8 => (&[Square::C8, Square::D8][..], &[Square::B8, Square::C8, Square::D8][..]),
+        _ => return,
+    };
+
     for &sq in path_squares {
         if pos.piece_at(sq) != Piece::none() {
             return;
@@ -295,7 +261,7 @@ fn try_castle(
     }
 
     for &sq in check_path_squares {
-        if super_attacks_from_square(sq, side, pos).bits() != 0 {
+        if pieces_attacking_square(sq, side, pos).bits() != 0 {
             return;
         }
     }
@@ -313,7 +279,7 @@ fn add_promotions(from_sq: Square, to_sq: Square, side: Color, moves: &mut Array
     }
 }
 
-fn super_attacks_from_square(sq: Square, c: Color, pos: &Position) -> Bitboard {
+fn pieces_attacking_square(sq: Square, c: Color, pos: &Position) -> Bitboard {
     Bitboard::from_u64(
         pawn(c, sq).bits() & pos.pieces_bb_color(!c, PieceType::Pawn).bits()
             | knight(sq).bits() & pos.pieces_bb_color(!c, PieceType::Knight).bits()
