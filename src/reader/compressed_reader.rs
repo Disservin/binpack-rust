@@ -135,6 +135,7 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
     }
 
     /// Get the next TrainingDataEntry
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> TrainingDataEntry {
         if let Some(ref mut reader) = self.movelist_reader {
             let entry = reader.reader.next_entry();

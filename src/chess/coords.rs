@@ -57,6 +57,7 @@ pub struct Square {
 impl Square {
     pub const NONE: Self = Self { index: 64 };
     pub const A1: Self = Self { index: 0 };
+    pub const B1: Self = Self { index: 1 };
     pub const C1: Self = Self { index: 2 };
     pub const D1: Self = Self { index: 3 };
     pub const E1: Self = Self { index: 4 };
@@ -64,6 +65,7 @@ impl Square {
     pub const G1: Self = Self { index: 6 };
     pub const H1: Self = Self { index: 7 };
     pub const A8: Self = Self { index: 56 };
+    pub const B8: Self = Self { index: 57 };
     pub const C8: Self = Self { index: 58 };
     pub const D8: Self = Self { index: 59 };
     pub const E8: Self = Self { index: 60 };

@@ -179,8 +179,7 @@ impl CompressedPosition {
         };
 
         let mut idx = 0;
-        let mut nibble_idx = 0;
-        for sq in compressed.occupied.iter() {
+        for (nibble_idx, sq) in compressed.occupied.iter().enumerate() {
             let nibble = pack_piece(sq);
             if nibble_idx % 2 == 0 {
                 compressed.packed_state[idx] = nibble;
@@ -188,7 +187,6 @@ impl CompressedPosition {
                 compressed.packed_state[idx] |= nibble << 4;
                 idx += 1;
             }
-            nibble_idx += 1;
         }
 
         compressed
