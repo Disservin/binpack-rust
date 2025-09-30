@@ -97,10 +97,11 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
             reader.is_end = true;
             return Err(CompressedReaderError::EndOfFile);
         } else {
-            reader.chunk = match reader.input_file.as_mut().unwrap().read_next_chunk() {
-                Ok(chunk) => chunk,
-                Err(e) => return Err(CompressedReaderError::BinpackError(e)),
-            };
+            reader
+                .input_file
+                .as_mut()
+                .unwrap()
+                .read_next_chunk_into(&mut reader.chunk)?;
         }
 
         Ok(reader)
