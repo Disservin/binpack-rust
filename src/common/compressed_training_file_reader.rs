@@ -52,7 +52,7 @@ impl<T: Read + Seek> CompressedTrainingDataFileReader<T> {
         Ok(data)
     }
 
-     pub fn read_next_chunk_into(&mut self, buffer: &mut Vec<u8>) -> Result<()> {
+    pub fn read_next_chunk_into(&mut self, buffer: &mut Vec<u8>) -> Result<()> {
         let header = self.read_chunk_header()?;
         buffer.resize(header.chunk_size as usize, 0);
         self.file.read_exact(buffer)?;
