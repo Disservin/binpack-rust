@@ -71,6 +71,8 @@ impl PackedMoveScoreListReader {
         // Extract the move
         let move_ = self.decode_move(movetext, piece_id, occupied);
 
+        debug_assert!(move_.piece_type != PieceType::None);
+
         // Extract the score
         let score = self.decode_score(movetext);
 
@@ -157,7 +159,7 @@ impl PackedMoveScoreListReader {
                     if to == ep_square {
                         Move::en_passant(from, to)
                     } else {
-                        Move::normal(from, to)
+                        Move::normal(from, to, PieceType::Pawn)
                     }
                 }
             }
@@ -195,7 +197,7 @@ impl PackedMoveScoreListReader {
                     Move::from_castle(castle_type, side_to_move)
                 } else {
                     let to = Square::new(nth_set_bit_index(attacks.bits(), move_id as u64));
-                    Move::normal(from, to)
+                    Move::normal(from, to, PieceType::King)
                 }
             }
 
@@ -207,7 +209,7 @@ impl PackedMoveScoreListReader {
                     .extract_bits_le8(movetext, used_bits_safe(attacks.count() as u64));
                 let idx = nth_set_bit_index(attacks.bits(), move_id as u64);
                 let to = Square::new(idx);
-                Move::normal(from, to)
+                Move::normal(from, to, piece_type)
             }
         }
     }

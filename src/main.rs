@@ -4,7 +4,7 @@ use sfbinpack::CompressedTrainingDataEntryReader;
 
 fn main() {
     let file =
-        File::open("..\\..\\stockfish-data\\test80-2024-06-jun-2tb7p.min-v2.v6.binpack").unwrap();
+        File::open("/mnt/g/stockfish-data/test80-2024-06-jun-2tb7p.min-v2.v6.binpack").unwrap();
 
     let filesize = file.metadata().unwrap().len();
 

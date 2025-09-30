@@ -321,6 +321,7 @@ mod tests {
     use crate::chess::{
         coords::Square,
         piece::Piece,
+        piecetype::PieceType,
         position::Position,
         r#move::{Move, MoveType},
     };
@@ -355,6 +356,7 @@ mod tests {
                     Square::new(26),
                     MoveType::Normal,
                     Piece::none(),
+                    PieceType::Pawn,
                 ),
                 score: -201,
                 ply: 68,
@@ -368,6 +370,7 @@ mod tests {
                     Square::new(19),
                     MoveType::Normal,
                     Piece::none(),
+                    PieceType::Pawn,
                 ),
                 score: 254,
                 ply: 69,
@@ -383,6 +386,7 @@ mod tests {
                     Square::new(49),
                     MoveType::Normal,
                     Piece::none(),
+                    PieceType::Bishop,
                 ),
                 score: -220,
                 ply: 70,
