@@ -261,11 +261,11 @@ impl Position {
 
                     // move the enemy pawn
                     let enemy_pawn = self.piece_at(enemy_sq);
-                    self.remove_piece(!self.stm, enemy_pawn, enemy_sq);
+                    self.remove_piecetype(!self.stm, PieceType::Pawn, enemy_sq);
                     self.place_piece(!self.stm, enemy_pawn, ep);
 
                     // remove our pawn
-                    self.remove_piece(self.stm, piece, to);
+                    self.remove_piecetype(self.stm, PieceType::Pawn, to);
 
                     // check if the side which made the move is in check
                     let is_checked = self.is_checked(!self.stm);
@@ -274,7 +274,7 @@ impl Position {
 
                     // move the enemy pawn
                     self.place_piece(!self.stm, enemy_pawn, enemy_sq);
-                    self.remove_piece(!self.stm, enemy_pawn, ep);
+                    self.remove_piecetype(!self.stm, PieceType::Pawn, ep);
 
                     // place our pawn
                     self.place_piece(self.stm, piece, to);
@@ -350,6 +350,7 @@ impl Position {
 
     /// Removes a piece from the board
     #[inline(always)]
+    #[allow(dead_code)]
     fn remove_piece(&mut self, side: Color, pc: Piece, sq: Square) {
         debug_assert!(pc != Piece::none());
         debug_assert!(sq != Square::NONE);
