@@ -17,16 +17,16 @@ use crate::{
 use super::bitreader::BitReader;
 
 #[derive(Debug)]
-pub struct PackedMoveScoreListReader<'a> {
-    reader: BitReader<'a>,
+pub struct PackedMoveScoreListReader {
+    reader: BitReader,
     last_score: i16,
     num_plies: u16,
     num_read_plies: u16,
     entry: TrainingDataEntry,
 }
 
-impl<'a> PackedMoveScoreListReader<'a> {
-    pub fn new(entry: TrainingDataEntry, movetext: &'a [u8], num_plies: u16) -> Self {
+impl PackedMoveScoreListReader {
+    pub fn new(entry: TrainingDataEntry, movetext: *const u8, num_plies: u16) -> Self {
         Self {
             reader: BitReader::new(movetext),
             num_plies,

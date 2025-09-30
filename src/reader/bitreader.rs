@@ -1,12 +1,12 @@
 #[derive(Debug)]
-pub struct BitReader<'a> {
-    movetext: &'a [u8],
+pub struct BitReader {
+    movetext: *const u8,
     read_bits_left: usize,
     read_offset: usize,
 }
 
-impl<'a> BitReader<'a> {
-    pub fn new(movetext: &'a [u8]) -> Self {
+impl BitReader {
+    pub fn new(movetext: *const u8) -> Self {
         Self {
             movetext,
             read_bits_left: 8,
@@ -24,15 +24,21 @@ impl<'a> BitReader<'a> {
             self.read_bits_left = 8;
         }
 
-        debug_assert!(self.read_offset < self.movetext.len());
+        let byte: u8;
 
-        let byte = self.movetext[self.read_offset] << (8 - self.read_bits_left);
+        unsafe {
+            byte = *self.movetext.add(self.read_offset) << (8 - self.read_bits_left);
+        }
+
         let mut bits = byte >> (8 - count);
 
         if count > self.read_bits_left {
             let spill_count = count - self.read_bits_left;
 
-            bits |= self.movetext[self.read_offset + 1] >> (8 - spill_count);
+            unsafe {
+                bits |= *self.movetext.add(self.read_offset + 1) >> (8 - spill_count);
+            }
+
             self.read_bits_left += 8;
             self.read_offset += 1;
         }
