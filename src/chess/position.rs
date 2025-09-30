@@ -151,8 +151,6 @@ impl Position {
         let from = mv.from();
         let to = mv.to();
         let piece = self.piece_at(from);
-        let captured = self.piece_at(to);
-        let genuine_capture = captured != Piece::none() && mv.mtype() != MoveType::Castle;
         let pt = piece.piece_type();
 
         debug_assert!(from != Square::NONE);
@@ -163,11 +161,22 @@ impl Position {
         self.remove_piecetype(self.stm, pt, from);
 
         // capture piece
-        if genuine_capture {
-            self.remove_piecetype(!self.stm, captured.piece_type(), to);
-            self.update_castling_rights(from, to);
-        } else if piece.piece_type() == PieceType::King || piece.piece_type() == PieceType::Rook {
-            self.update_castling_rights(from, to);
+        if mv.mtype() != MoveType::Castle {
+            let captured = self.piece_at(to);
+            if captured != Piece::none() {
+                let cap_pt = captured.piece_type();
+                self.remove_piecetype(!self.stm, cap_pt, to);
+
+                if cap_pt == PieceType::Rook {
+                    self.update_castling_rights_color(!self.stm, from, to);
+                }
+
+                self.halfm = 0;
+            }
+        }
+
+        if pt == PieceType::King || pt == PieceType::Rook {
+            self.update_castling_rights_color(self.stm, from, to);
         }
 
         if mv.mtype() == MoveType::Promotion {
@@ -224,7 +233,7 @@ impl Position {
         // update state
 
         // Update halfmove clock
-        if genuine_capture || pt == PieceType::Pawn {
+        if pt == PieceType::Pawn {
             self.halfm = 0;
         } else {
             self.halfm += 1;
@@ -567,25 +576,27 @@ impl Position {
         self.is_attacked(self.king_sq(c), !c)
     }
 
-    fn update_castling_rights(&mut self, from: Square, to: Square) {
-        // Remove castling rights if king or rook moves
-        if from == Square::E1 || to == Square::E1 {
-            self.castling_rights &= !CastlingRights::WHITE;
-        }
-        if from == Square::E8 || to == Square::E8 {
-            self.castling_rights &= !CastlingRights::BLACK;
-        }
-        if from == Square::A1 || to == Square::A1 {
-            self.castling_rights &= !CastlingRights::WHITE_QUEEN_SIDE;
-        }
-        if from == Square::H1 || to == Square::H1 {
-            self.castling_rights &= !CastlingRights::WHITE_KING_SIDE;
-        }
-        if from == Square::A8 || to == Square::A8 {
-            self.castling_rights &= !CastlingRights::BLACK_QUEEN_SIDE;
-        }
-        if from == Square::H8 || to == Square::H8 {
-            self.castling_rights &= !CastlingRights::BLACK_KING_SIDE;
+    fn update_castling_rights_color(&mut self, color: Color, from: Square, to: Square) {
+        if color == Color::White {
+            if from == Square::E1 || to == Square::E1 {
+                self.castling_rights &= !CastlingRights::WHITE;
+            }
+            if from == Square::A1 || to == Square::A1 {
+                self.castling_rights &= !CastlingRights::WHITE_QUEEN_SIDE;
+            }
+            if from == Square::H1 || to == Square::H1 {
+                self.castling_rights &= !CastlingRights::WHITE_KING_SIDE;
+            }
+        } else {
+            if from == Square::E8 || to == Square::E8 {
+                self.castling_rights &= !CastlingRights::BLACK;
+            }
+            if from == Square::A8 || to == Square::A8 {
+                self.castling_rights &= !CastlingRights::BLACK_QUEEN_SIDE;
+            }
+            if from == Square::H8 || to == Square::H8 {
+                self.castling_rights &= !CastlingRights::BLACK_KING_SIDE;
+            }
         }
     }
 
