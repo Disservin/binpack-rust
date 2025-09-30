@@ -1,4 +1,4 @@
-use crate::chess::{position::Position, r#move::Move};
+use crate::chess::{piecetype::PieceType, position::Position, r#move::Move};
 
 use super::{
     arithmetic::{signed_to_unsigned, unsigned_to_signed},
@@ -59,8 +59,11 @@ impl PackedTrainingDataEntry {
         // Read and decompress move
         // EBNF: Move
         let compressed_move = CompressedMove::read_from_big_endian(&self.data[offset..]);
-        let mv = compressed_move.decompress();
+        let mut mv = compressed_move.decompress();
         offset += CompressedMove::byte_size();
+
+        mv.piece_type = pos.piece_at(mv.from()).piece_type();
+        debug_assert!(mv.piece_type != PieceType::None);
 
         // Read score
         // EBNF: Score
@@ -132,7 +135,7 @@ impl PackedTrainingDataEntry {
 
 #[cfg(test)]
 mod test {
-    use crate::chess::{coords::Square, piece::Piece, r#move::MoveType};
+    use crate::chess::{coords::Square, piece::Piece, piecetype::PieceType, r#move::MoveType};
 
     use super::*;
 
@@ -157,6 +160,7 @@ mod test {
                 Square::new(58),
                 MoveType::Normal,
                 Piece::none(),
+                PieceType::Rook,
             ),
             score: -127,
             ply: 39,
