@@ -45,10 +45,17 @@ pub struct Move {
     to: Square,
     move_type: MoveType,
     promoted_piece: Piece,
+    pub piece_type: PieceType,
 }
 
 impl Move {
-    pub fn new(from: Square, to: Square, move_type: MoveType, promoted_piece: Piece) -> Self {
+    pub fn new(
+        from: Square,
+        to: Square,
+        move_type: MoveType,
+        promoted_piece: Piece,
+        piece_type: PieceType,
+    ) -> Self {
         debug_assert!(from.index() < 64);
         debug_assert!(to.index() < 64);
 
@@ -57,6 +64,7 @@ impl Move {
             to,
             move_type,
             promoted_piece,
+            piece_type,
         }
     }
 
@@ -66,6 +74,7 @@ impl Move {
             to: Square::NONE,
             move_type: MoveType::Normal,
             promoted_piece: Piece::none(),
+            piece_type: PieceType::None,
         }
     }
 
@@ -87,12 +96,13 @@ impl Move {
         self.to
     }
 
-    pub const fn normal(from: Square, to: Square) -> Self {
+    pub const fn normal(from: Square, to: Square, piece_type: PieceType) -> Self {
         Self {
             from,
             to,
             move_type: MoveType::Normal,
             promoted_piece: Piece::none(),
+            piece_type,
         }
     }
 
@@ -102,6 +112,7 @@ impl Move {
             to,
             move_type: MoveType::EnPassant,
             promoted_piece: Piece::none(),
+            piece_type: PieceType::Pawn,
         }
     }
 
@@ -111,6 +122,7 @@ impl Move {
             to,
             move_type: MoveType::Promotion,
             promoted_piece: piece,
+            piece_type: PieceType::Pawn,
         }
     }
 
@@ -120,6 +132,7 @@ impl Move {
             to,
             move_type: MoveType::Castle,
             promoted_piece: Piece::none(),
+            piece_type: PieceType::King,
         }
     }
 

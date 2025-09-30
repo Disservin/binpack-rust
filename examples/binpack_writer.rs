@@ -2,10 +2,7 @@ use std::fs::OpenOptions;
 
 use sfbinpack::{
     chess::{
-        coords::Square,
-        piece::Piece,
-        position::Position,
-        r#move::{Move, MoveType},
+        coords::Square, r#move::{Move, MoveType}, piece::Piece, piecetype::PieceType, position::Position
     },
     CompressedTrainingDataEntryWriter, TrainingDataEntry,
 };
@@ -32,6 +29,7 @@ fn main() {
                 Square::new(26),
                 MoveType::Normal,
                 Piece::none(),
+                PieceType::Pawn,
             ),
             score: -201,
             ply: 68,
@@ -45,6 +43,7 @@ fn main() {
                 Square::new(19),
                 MoveType::Normal,
                 Piece::none(),
+                PieceType::Pawn,
             ),
             score: 254,
             ply: 69,
@@ -58,6 +57,7 @@ fn main() {
                 Square::new(49),
                 MoveType::Normal,
                 Piece::none(),
+                PieceType::Bishop
             ),
             score: -220,
             ply: 70,

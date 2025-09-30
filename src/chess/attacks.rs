@@ -88,7 +88,7 @@ fn generate_pawn_pushes(
     if (promotion_start..promotion_end).contains(&one_step) {
         add_promotions(from_sq, to_sq, side, moves);
     } else {
-        moves.push(Move::normal(from_sq, to_sq));
+        moves.push(Move::normal(from_sq, to_sq, PieceType::Pawn));
 
         // Double push
         if from_sq.index() / 8 == start_rank {
@@ -96,7 +96,7 @@ fn generate_pawn_pushes(
             if (0..64).contains(&two_step)
                 && pos.piece_at(Square::new(two_step as u32)) == Piece::none()
             {
-                moves.push(Move::normal(from_sq, Square::new(two_step as u32)));
+                moves.push(Move::normal(from_sq, Square::new(two_step as u32), PieceType::Pawn));
             }
         }
     }
@@ -126,7 +126,7 @@ fn generate_pawn_captures(
             if (promotion_start..promotion_end).contains(&(to_sq.index() as i32)) {
                 add_promotions(from_sq, to_sq, side, moves);
             } else {
-                moves.push(Move::normal(from_sq, to_sq));
+                moves.push(Move::normal(from_sq, to_sq, PieceType::Pawn));
             }
         }
     }
@@ -204,7 +204,7 @@ fn generate_piece_moves<P: PieceMovement>(
             let target = pos.piece_at(to_sq);
 
             if target == Piece::none() || target.color() != side {
-                moves.push(Move::normal(from_sq, to_sq));
+                moves.push(Move::normal(from_sq, to_sq, P::piece_type()));
             }
         }
     }

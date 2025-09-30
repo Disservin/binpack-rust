@@ -117,7 +117,13 @@ impl CompressedMove {
             debug_assert!(from != Square::NONE);
             debug_assert!(to != Square::NONE);
 
-            Move::new(from, to, move_type, promoted_piece)
+            Move::new(
+                from,
+                to,
+                move_type,
+                promoted_piece,
+                /* will be adjusted later */ PieceType::None,
+            )
         }
     }
 
@@ -146,6 +152,7 @@ mod tests {
             Square::new(58),
             MoveType::Normal,
             Piece::none(),
+            PieceType::None,
         );
 
         assert_eq!(expected, compressed.decompress());
@@ -158,6 +165,7 @@ mod tests {
             Square::new(56),
             MoveType::Promotion,
             Piece::new(PieceType::Queen, Color::White),
+            PieceType::None,
         );
 
         let compressed = CompressedMove::from_move(expected);
@@ -172,6 +180,7 @@ mod tests {
             Square::new(56),
             MoveType::Promotion,
             Piece::new(PieceType::Queen, Color::White),
+            PieceType::None,
         );
 
         let compressed = CompressedMove::from_move(expected);
