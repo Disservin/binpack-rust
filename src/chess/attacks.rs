@@ -96,7 +96,11 @@ fn generate_pawn_pushes(
             if (0..64).contains(&two_step)
                 && pos.piece_at(Square::new(two_step as u32)) == Piece::none()
             {
-                moves.push(Move::normal(from_sq, Square::new(two_step as u32), PieceType::Pawn));
+                moves.push(Move::normal(
+                    from_sq,
+                    Square::new(two_step as u32),
+                    PieceType::Pawn,
+                ));
             }
         }
     }
