@@ -350,6 +350,7 @@ impl Position {
 
     /// Removes a piece from the board
     #[inline(always)]
+    #[allow(dead_code)]
     fn remove_piece(&mut self, side: Color, pc: Piece, sq: Square) {
         debug_assert!(pc != Piece::none());
         debug_assert!(sq != Square::NONE);
