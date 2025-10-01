@@ -320,4 +320,57 @@ mod tests {
         let expected_bytes = fs::read("test/ep1.binpack").unwrap();
         assert_eq!(read_bytes, expected_bytes);
     }
+
+    #[test]
+    fn test_compressed_writer_big_score_diff() {
+        let entries = vec![
+            TrainingDataEntry {
+                pos: Position::from_fen("1q5b/1r5k/4p2p/1b2P1pN/3p4/6PP/1nP3B1/1Q2B1K1 w - - 0 35")
+                    .unwrap(),
+                mv: Move::new(
+                    Square::new(10),
+                    Square::new(26),
+                    MoveType::Normal,
+                    Piece::none(),
+                ),
+                score: -31999,
+                ply: 68,
+                result: 0,
+            },
+            TrainingDataEntry {
+                pos: Position::from_fen("1q5b/1r5k/4p2p/1b2P1pN/2Pp4/6PP/1n4B1/1Q2B1K1 b - - 0 35")
+                    .unwrap(),
+                mv: Move::new(
+                    Square::new(27),
+                    Square::new(19),
+                    MoveType::Normal,
+                    Piece::none(),
+                ),
+                score: -1500,
+                ply: 69,
+                result: 0,
+            },
+        ];
+
+        let cursor = Cursor::new(Vec::new());
+        let mut writer = CompressedTrainingDataEntryWriter::new(cursor).unwrap();
+
+        for entry in entries.iter() {
+            writer.write_entry(entry).unwrap();
+        }
+
+        writer.flush().unwrap();
+
+        let mut cursor = writer.into_inner().unwrap();
+        cursor.seek(io::SeekFrom::Start(0)).unwrap();
+
+        let mut read_bytes = vec![];
+        cursor.read_to_end(&mut read_bytes).unwrap();
+
+        let expected_bytes = [
+            66, 73, 78, 80, 37, 0, 0, 0, 130, 130, 144, 210, 8, 192, 70, 82, 72, 58, 64, 0, 81, 16,
+            18, 113, 155, 5, 0, 0, 0, 0, 0, 0, 10, 104, 249, 253, 0, 68, 0, 0, 0, 1, 29, 83, 79,
+        ];
+        assert_eq!(read_bytes, expected_bytes);
+    }
 }

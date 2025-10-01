@@ -60,7 +60,7 @@ impl PackedMoveScoreList {
         self.writer
             .add_bits_le8(move_id as u8, used_bits_safe(num_moves));
 
-        let score_delta = signed_to_unsigned(score - self.last_score);
+        let score_delta: u16 = signed_to_unsigned(score.wrapping_sub(self.last_score));
 
         self.writer
             .add_bits_vle16(score_delta, SCORE_VLE_BLOCK_SIZE);
