@@ -42,4 +42,8 @@ impl<T: Write> CompressedTrainingDataFileWriter<T> {
         buf[7] = ((header.chunk_size >> 24) & 0xFF) as u8;
         self.file.write_all(&buf)
     }
+
+    pub fn flush(&mut self) -> std::io::Result<()> {
+        self.file.flush()
+    }
 }
