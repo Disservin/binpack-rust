@@ -122,8 +122,14 @@ impl<T: Write> CompressedTrainingDataEntryWriter<T> {
         Ok(())
     }
 
+    pub fn flush_and_end(&mut self) {
+        let _ = self.flush_packed();
+    }
+
     pub fn flush(&mut self) {
-        self.output_file.as_mut().unwrap().flush().unwrap();
+        if let Some(file) = self.output_file.as_mut() {
+            let _ = file.flush();
+        }
     }
 
     /// Flush the buffer to the file, automatically called when the writer is dropped
@@ -147,7 +153,9 @@ impl<T: Write> CompressedTrainingDataEntryWriter<T> {
             self.packed_size = 0;
         }
 
-        self.output_file.as_mut().unwrap().flush()?;
+        if let Some(file) = self.output_file.as_mut() {
+            file.flush()?;
+        }
 
         Ok(())
     }
@@ -315,7 +323,7 @@ mod tests {
             writer.write_entry(entry).unwrap();
         }
 
-        writer.flush();
+        writer.flush_and_end();
 
         let mut cursor = writer.into_inner().unwrap();
         cursor.seek(io::SeekFrom::Start(0)).unwrap();
@@ -365,7 +373,7 @@ mod tests {
             writer.write_entry(entry).unwrap();
         }
 
-        writer.flush();
+        writer.flush_and_end();
 
         let mut cursor = writer.into_inner().unwrap();
         cursor.seek(io::SeekFrom::Start(0)).unwrap();
