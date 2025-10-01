@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::chess::{position::Position, r#move::Move};
 
 use super::{
@@ -27,6 +29,20 @@ impl TrainingDataEntry {
         self.result == -other.result
             && self.ply + 1 == other.ply
             && self.pos.after_move(self.mv) == other.pos
+    }
+}
+
+impl fmt::Display for TrainingDataEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} {} {} {} {}",
+            self.pos.fen().unwrap(),
+            self.mv.as_uci(),
+            self.score,
+            self.ply,
+            self.result
+        )
     }
 }
 
