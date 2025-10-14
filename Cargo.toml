@@ -15,6 +15,7 @@ default = []
 # This should be enabled on all Intel CPUs, which support BMI2.
 # CPUs from AMD should only enabled this if the architecture is Zen3+.
 bmi2 = []
+ffi = []
 
 [dependencies]
 arrayvec = "0.7.6"
@@ -25,6 +26,7 @@ tempfile = "3"
 
 [lib]
 path = "src/lib.rs"
+crate-type = ["rlib", "staticlib", "cdylib"]
 
 [[bin]]
 name = "sfbinpack"
