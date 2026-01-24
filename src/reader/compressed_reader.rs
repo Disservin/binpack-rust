@@ -322,4 +322,38 @@ mod tests {
 
         assert_eq!(entries, expected);
     }
+
+    // test case for https://github.com/Disservin/binpack-rust/issues/17
+    #[test]
+    #[should_panic(expected = "index out of bounds: the len is 0 but the index is 0")]
+    fn test_reader_no_moves() {
+        // Safe API UB: CompressedTrainingDataEntryReader constructs a BitReader
+        // from a raw pointer without tracking length. A crafted chunk with
+        // num_plies > 0 but no movetext bytes triggers OOB reads.
+
+        // Valid packed entry bytes from crate tests (32 bytes).
+        let entry_bytes: [u8; 32] = [
+            98, 121, 192, 21, 24, 76, 241, 100, 100, 106, 0, 4, 8, 48, 2, 17, 17, 145, 19, 117,
+            247, 0, 0, 0, 61, 232, 0, 253, 0, 39, 0, 2,
+        ];
+
+        // num_plies = 1, but movetext is empty (chunk size == 32 + 2).
+        let mut chunk = Vec::new();
+        chunk.extend_from_slice(&entry_bytes);
+        chunk.extend_from_slice(&1u16.to_be_bytes());
+
+        // File header: "BINP" + chunk_size (LE).
+        let mut file = Vec::new();
+        file.extend_from_slice(b"BINP");
+        file.extend_from_slice(&(chunk.len() as u32).to_le_bytes());
+        file.extend_from_slice(&chunk);
+
+        let cursor = Cursor::new(file);
+        let mut reader = CompressedTrainingDataEntryReader::new(cursor).unwrap();
+
+        // First next() returns the stem entry and sets movelist_reader.
+        let _ = reader.next();
+        // Second next() consumes movetext via BitReader and triggers OOB.
+        let _ = reader.next();
+    }
 }

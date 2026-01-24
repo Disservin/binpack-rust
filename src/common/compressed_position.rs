@@ -231,13 +231,13 @@ mod tests {
         );
     }
 
-    // #[test]
-    // #[should_panic(expected = "range end index 24 out of range for slice of length 23")]
-    // fn test_too_small_data() {
-    //     let data = [0; 23];
+    #[test]
+    #[should_panic(expected = "24")]
+    fn test_too_small_data() {
+        let data = [0; 23];
 
-    //     let _ = CompressedPosition::read_from_big_endian(&data).decompress();
-    // }
+        let _ = CompressedPosition::read_from_big_endian(&data).decompress();
+    }
 
     #[test]
     fn test_write_big_endian() {
