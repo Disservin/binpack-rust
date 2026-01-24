@@ -134,7 +134,7 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
     #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> TrainingDataEntry {
         if let Some(ref mut reader) = self.movelist_reader {
-            let entry = reader.next_entry();
+            let entry = reader.next_entry(&self.chunk[self.offset..]);
 
             if !reader.has_next() {
                 self.offset += reader.num_read_bytes();
@@ -155,13 +155,7 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
 
         if num_plies > 0 {
             // EBNF: MoveText
-            let chunk_ref = &self.chunk[self.offset..];
-
-            self.movelist_reader = Some(PackedMoveScoreListReader::new(
-                entry,
-                chunk_ref.as_ptr(),
-                num_plies,
-            ));
+            self.movelist_reader = Some(PackedMoveScoreListReader::new(entry, num_plies));
         } else {
             self.fetch_next_chunk_if_needed();
         }
