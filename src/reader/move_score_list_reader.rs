@@ -84,8 +84,7 @@ impl PackedMoveScoreListReader {
     // EBNF: EncodedMove
     fn decode_score(&mut self, movetext: &[u8]) -> i16 {
         const SCORE_VLE_BLOCK_SIZE: usize = 4;
-        let delta =
-            unsigned_to_signed(self.reader.extract_vle16(movetext, SCORE_VLE_BLOCK_SIZE));
+        let delta = unsigned_to_signed(self.reader.extract_vle16(movetext, SCORE_VLE_BLOCK_SIZE));
 
         self.last_score.wrapping_add(delta)
     }
@@ -135,9 +134,10 @@ impl PackedMoveScoreListReader {
                 let destinations_count = destinations.count();
 
                 if from.rank() == promotion_rank {
-                    let move_id = self
-                        .reader
-                        .extract_bits_le8(movetext, used_bits_safe((destinations_count * 4) as u64));
+                    let move_id = self.reader.extract_bits_le8(
+                        movetext,
+                        used_bits_safe((destinations_count * 4) as u64),
+                    );
                     let pt =
                         PieceType::from_ordinal(PieceType::Knight.ordinal() + (move_id % 4) as u8);
                     let promoted_piece = Piece::new(pt, side_to_move);
@@ -174,9 +174,10 @@ impl PackedMoveScoreListReader {
                     (castling_rights & our_castling_rights_mask).count_ones() as usize;
 
                 let offset = attacks_size as usize + num_castlings;
-                let move_id =
-                    self.reader
-                        .extract_bits_le8(movetext, used_bits_safe(offset as u64)) as u32;
+                let move_id = self
+                    .reader
+                    .extract_bits_le8(movetext, used_bits_safe(offset as u64))
+                    as u32;
 
                 if move_id >= attacks_size {
                     let idx = move_id - attacks_size;
