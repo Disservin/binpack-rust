@@ -15,7 +15,10 @@ pub struct CompressedTrainingDataFileWriter<T: Write> {
 
 impl<T: Write> CompressedTrainingDataFileWriter<T> {
     pub fn new(file: T) -> std::io::Result<Self> {
-        Ok(Self { file, written_bytes: 0 })
+        Ok(Self {
+            file,
+            written_bytes: 0,
+        })
     }
 
     pub fn into_inner(self) -> std::io::Result<T> {
