@@ -78,6 +78,10 @@ impl<T: Write> CompressedTrainingDataEntryWriter<T> {
         self.output_file.take().unwrap().into_inner()
     }
 
+    pub fn written_bytes(&self) -> u64 {
+        self.output_file.as_ref().unwrap().written_bytes()
+    }
+
     /// Write a single entry to the file
     pub fn write_entry(&mut self, entry: &TrainingDataEntry) -> Result<()> {
         let is_cont = self.last_entry.is_continuation(entry);

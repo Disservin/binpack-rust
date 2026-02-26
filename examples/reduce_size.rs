@@ -63,14 +63,14 @@ fn main() {
         written += 1;
 
         if written % 1000 == 0 {
-            let out_size = std::fs::metadata(&output).map(|m| m.len()).unwrap_or(0);
+            let out_size = writer.written_bytes();
             if out_size >= target_bytes {
                 break;
             }
-            println!(
-                "Written {} entries, output size: {} bytes (target: {} bytes)",
-                written, out_size, target_bytes
-            );
+            // println!(
+            //     "Written {} entries, output size: {} bytes (target: {} bytes)",
+            //     written, out_size, target_bytes
+            // );
         }
 
         reader.read_bytes();

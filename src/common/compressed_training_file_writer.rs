@@ -10,15 +10,20 @@ struct Header {
 #[derive(Debug)]
 pub struct CompressedTrainingDataFileWriter<T: Write> {
     file: T,
+    written_bytes: u64,
 }
 
 impl<T: Write> CompressedTrainingDataFileWriter<T> {
     pub fn new(file: T) -> std::io::Result<Self> {
-        Ok(Self { file })
+        Ok(Self { file, written_bytes: 0 })
     }
 
     pub fn into_inner(self) -> std::io::Result<T> {
         Ok(self.file)
+    }
+
+    pub fn written_bytes(&self) -> u64 {
+        self.written_bytes
     }
 
     pub fn append(&mut self, data: &[u8]) -> std::io::Result<()> {
@@ -27,6 +32,7 @@ impl<T: Write> CompressedTrainingDataFileWriter<T> {
         };
         self.write_chunk_header(&header)?;
         self.file.write_all(data)?;
+        self.written_bytes += HEADER_SIZE as u64 + data.len() as u64;
         Ok(())
     }
 
