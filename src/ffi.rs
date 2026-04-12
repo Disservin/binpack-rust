@@ -112,13 +112,42 @@ fn parse_uci_move(uci: &str, position: &Position) -> Result<Move, String> {
     let from_file_idx = (from.index() % 8) as i32;
     let to_file_idx = (to.index() % 8) as i32;
 
-    if piece.piece_type() == PieceType::King && (from_file_idx - to_file_idx).abs() == 2 {
-        let castle_type = if to_file_idx > from_file_idx {
-            CastleType::Short
+    if piece.piece_type() == PieceType::King {
+        let same_rank = from.rank() == to.rank();
+        let castle_type = if same_rank && (from_file_idx - to_file_idx).abs() == 2 {
+            assert_eq!(
+                from_file_idx, 4,
+                "castling king should start from the e-file"
+            );
+            Some(if to_file_idx > from_file_idx {
+                CastleType::Short
+            } else {
+                CastleType::Long
+            })
         } else {
-            CastleType::Long
+            let target_piece = position.piece_at(to);
+            let is_rook_encoded_castle = same_rank
+                && target_piece.piece_type() == PieceType::Rook
+                && target_piece.color() == position.side_to_move()
+                && (to_file_idx == 0 || to_file_idx == 7);
+
+            if is_rook_encoded_castle {
+                assert_eq!(
+                    from_file_idx, 4,
+                    "castling king should start from the e-file"
+                );
+            }
+
+            is_rook_encoded_castle.then_some(if to_file_idx > from_file_idx {
+                CastleType::Short
+            } else {
+                CastleType::Long
+            })
         };
-        return Ok(Move::from_castle(castle_type, position.side_to_move()));
+
+        if let Some(castle_type) = castle_type {
+            return Ok(Move::from_castle(castle_type, position.side_to_move()));
+        }
     }
 
     if uci.len() > 5 {
@@ -287,6 +316,32 @@ mod tests {
     use crate::reader::CompressedTrainingDataEntryReader;
     use std::{ffi::CString, fs::File};
     use tempfile::tempdir;
+
+    #[test]
+    fn parse_standard_uci_castle() {
+        let position = Position::from_fen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1").unwrap();
+
+        let mv = parse_uci_move("e1g1", &position).unwrap();
+
+        assert_eq!(
+            mv,
+            Move::from_castle(CastleType::Short, position.side_to_move())
+        );
+        assert_eq!(mv.as_uci(), "e1g1");
+    }
+
+    #[test]
+    fn parse_king_captures_rook_castle() {
+        let position = Position::from_fen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1").unwrap();
+
+        let mv = parse_uci_move("e1h1", &position).unwrap();
+
+        assert_eq!(
+            mv,
+            Move::from_castle(CastleType::Short, position.side_to_move())
+        );
+        assert_eq!(mv.as_uci(), "e1g1");
+    }
 
     #[test]
     fn write_entry_from_c() {
