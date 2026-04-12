@@ -4,6 +4,9 @@ mod writer;
 
 pub mod chess;
 
+#[cfg(feature = "ffi")]
+pub mod ffi;
+
 pub use common::binpack_error::BinpackError;
 pub use common::entry::TrainingDataEntry;
 

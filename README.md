@@ -54,6 +54,34 @@ fn main() {
 _More examples can be found in the [examples](./examples) directory._  
 _If you are doing some counting keep in mind to use a `u64` type for the counter._
 
+## C/C++ Integration
+
+Enable the optional FFI bindings when you need to call the writer from C or C++:
+
+```shell
+cargo build --release --features "ffi"
+```
+
+Link the produced `libsfbinpack.{a,so}` and use the exported API from `src/ffi.rs`. A minimal C++ usage looks like:
+
+```cpp
+#include "sfbinpack.h"
+
+sfbinpack_writer_handle* writer = sfbinpack_writer_new("out.binpack");
+SfbinpackEntry entry{
+    .fen = "startpos fen ...",
+    .uci_move = "e2e4",
+    .score = 30,
+    .ply = 2,
+    .result = 1,
+};
+sfbinpack_writer_write_entry(writer, &entry);
+sfbinpack_writer_finish(writer);
+sfbinpack_writer_free(writer);
+```
+
+Call `sfbinpack_last_error_message()` for a human-readable string if any function returns a non-zero status code.
+
 ## Examples
 
 To run the examples in the `examples` directory, use the following command:
