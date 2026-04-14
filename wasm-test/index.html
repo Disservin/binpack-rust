@@ -1,134 +1,333 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>sfbinpack wasm test</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>binpack inspector</title>
     <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
       :root {
-        color-scheme: dark;
-        font-family: Inter, system-ui, sans-serif;
-        background: #111827;
-        color: #e5e7eb;
+        --bg: #0e0e0f;
+        --bg2: #161618;
+        --bg3: #1e1e21;
+        --border: rgba(255, 255, 255, 0.07);
+        --border2: rgba(255, 255, 255, 0.12);
+        --text: #e8e6e0;
+        --text2: #888880;
+        --text3: #555550;
+        --green: #7ec98a;
+        --red: #e0706b;
+        --blue: #7aaddc;
       }
 
       body {
-        margin: 0;
-        padding: 24px;
+        font-family: "JetBrains Mono", "Fira Mono", "Cascadia Code", monospace;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 2.5rem 2rem;
       }
 
-      main {
-        max-width: 960px;
+      .shell {
+        max-width: 1100px;
         margin: 0 auto;
       }
 
-      h1 {
-        margin-top: 0;
-        font-size: 1.75rem;
+      .header {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        margin-bottom: 2rem;
+        border-bottom: 0.5px solid var(--border);
+        padding-bottom: 1rem;
+      }
+      .header h1 {
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text);
+      }
+      .header span {
+        font-size: 11px;
+        color: var(--text3);
       }
 
-      .panel {
-        background: #1f2937;
-        border: 1px solid #374151;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 16px;
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 1.25rem;
       }
 
-      label,
-      input,
-      button {
-        font: inherit;
-      }
-
-      input[type="file"],
-      input[type="number"] {
-        margin-top: 8px;
-      }
-
-      button {
-        margin-top: 12px;
-        padding: 10px 14px;
-        border: 0;
-        border-radius: 8px;
-        background: #2563eb;
-        color: white;
+      .file-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
         cursor: pointer;
+        background: var(--bg2);
+        border: 0.5px solid var(--border2);
+        border-radius: 5px;
+        padding: 7px 14px;
+        font-family: inherit;
+        font-size: 11px;
+        color: var(--text2);
+        transition:
+          border-color 0.15s,
+          color 0.15s;
+        white-space: nowrap;
+      }
+      .file-label:hover {
+        border-color: rgba(255, 255, 255, 0.25);
+        color: var(--text);
+      }
+      #file-input {
+        display: none;
       }
 
-      button:disabled {
-        opacity: 0.5;
-        cursor: wait;
+      #file-name-display {
+        font-size: 11px;
+        color: var(--text3);
       }
 
-      pre {
-        white-space: pre-wrap;
-        word-break: break-word;
-        background: #0f172a;
-        border-radius: 8px;
-        padding: 12px;
-        overflow: auto;
+      .limit-wrap {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-left: auto;
+      }
+      .limit-wrap label {
+        font-size: 11px;
+        color: var(--text3);
+        white-space: nowrap;
+      }
+      .limit-wrap input {
+        width: 64px;
+        background: var(--bg2);
+        border: 0.5px solid var(--border2);
+        border-radius: 5px;
+        padding: 6px 8px;
+        font-family: inherit;
+        font-size: 11px;
+        color: var(--text);
+        text-align: center;
+        outline: none;
+      }
+      .limit-wrap input:focus {
+        border-color: rgba(255, 255, 255, 0.3);
       }
 
+      #parse-button {
+        font-family: inherit;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 7px 18px;
+        cursor: pointer;
+        background: var(--bg2);
+        border: 0.5px solid var(--border2);
+        border-radius: 5px;
+        color: var(--text);
+        transition:
+          background 0.1s,
+          border-color 0.15s;
+      }
+      #parse-button:hover {
+        background: var(--bg3);
+        border-color: rgba(255, 255, 255, 0.25);
+      }
+      #parse-button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      .status-bar {
+        font-size: 11px;
+        color: var(--text3);
+        letter-spacing: 0.02em;
+        padding: 7px 0;
+        border-top: 0.5px solid var(--border);
+        border-bottom: 0.5px solid var(--border);
+        margin-bottom: 1.5rem;
+      }
+      .status-bar.ok {
+        color: var(--green);
+      }
+      .status-bar.err {
+        color: var(--red);
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 1.5rem;
+      }
+      .metric {
+        background: var(--bg2);
+        border: 0.5px solid var(--border);
+        border-radius: 6px;
+        padding: 12px 14px;
+      }
+      .metric-label {
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text3);
+        margin-bottom: 5px;
+      }
+      .metric-value {
+        font-size: 22px;
+        font-weight: 500;
+        color: var(--text);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        border: 0.5px solid var(--border);
+        border-radius: 6px;
+      }
       table {
         width: 100%;
         border-collapse: collapse;
+        font-size: 11px;
       }
-
-      th,
-      td {
+      thead th {
+        padding: 8px 10px;
         text-align: left;
-        vertical-align: top;
-        padding: 8px;
-        border-bottom: 1px solid #374151;
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text3);
+        background: var(--bg2);
+        border-bottom: 0.5px solid var(--border);
+        white-space: nowrap;
+      }
+      tbody tr {
+        border-bottom: 0.5px solid var(--border);
+      }
+      tbody tr:last-child {
+        border-bottom: none;
+      }
+      tbody tr:hover {
+        background: var(--bg2);
+      }
+      tbody td {
+        padding: 7px 10px;
+        color: var(--text);
+        vertical-align: middle;
+      }
+      tbody td:first-child {
+        color: var(--text3);
+        font-size: 10px;
+      }
+      .fen-cell {
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--text2) !important;
+      }
+      .score-cell {
+        color: var(--blue) !important;
+      }
+      .result-cell {
+        color: var(--green) !important;
       }
 
-      .muted {
-        color: #9ca3af;
+      .empty {
+        padding: 3rem;
+        text-align: center;
+        font-size: 11px;
+        color: var(--text3);
+        letter-spacing: 0.04em;
       }
     </style>
   </head>
   <body>
-    <main>
-      <h1>sfbinpack wasm test page</h1>
+    <div class="shell">
+      <div class="header">
+        <h1>binpack inspector</h1>
+        <span>sfbinpack format</span>
+      </div>
 
-      <section class="panel">
-        <p>
-          Build the wasm package with
-          <code>wasm-pack build --target web --out-dir wasm-test/pkg</code>, then serve the repo
-          root with a static file server and open this page.
-        </p>
-        <label>
-          Binpack file
-          <br />
-          <input id="file-input" type="file" accept=".binpack,application/octet-stream" />
+      <div class="controls">
+        <label class="file-label" for="file-input">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+            <path
+              d="M2 13V3C2 2.45 2.45 2 3 2H9L14 7V13C14 13.55 13.55 14 13 14H3C2.45 14 2 13.55 2 13Z"
+              stroke="currentColor"
+              stroke-width="1.2"
+            />
+            <polyline
+              points="9,2 9,7 14,7"
+              stroke="currentColor"
+              stroke-width="1.2"
+              fill="none"
+            />
+          </svg>
+          choose .binpack
         </label>
-        <br />
-        <label>
-          Preview entries
-          <br />
-          <input id="preview-limit" type="number" min="1" max="1000" value="10" />
-        </label>
-        <br />
-        <button id="parse-button">Parse file</button>
-      </section>
+        <input type="file" id="file-input" accept=".binpack,.bin" />
+        <span id="file-name-display">no file selected</span>
+        <div class="limit-wrap">
+          <label for="preview-limit">preview rows</label>
+          <input
+            type="number"
+            id="preview-limit"
+            value="10"
+            min="1"
+            max="1000"
+          />
+        </div>
+        <button id="parse-button">parse</button>
+      </div>
 
-      <section class="panel">
-        <h2>Status</h2>
-        <pre id="status">Loading wasm module...</pre>
-      </section>
+      <div class="status-bar" id="status">awaiting wasm module...</div>
 
-      <section class="panel">
-        <h2>Summary</h2>
-        <pre id="summary" class="muted">No file parsed yet.</pre>
-      </section>
+      <div class="metrics" id="metrics-row" style="display: none">
+        <div class="metric">
+          <div class="metric-label">byte length</div>
+          <div class="metric-value" id="m-bytes">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">total entries</div>
+          <div class="metric-value" id="m-total">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">preview count</div>
+          <div class="metric-value" id="m-preview">—</div>
+        </div>
+      </div>
 
-      <section class="panel">
-        <h2>Preview</h2>
-        <div id="preview" class="muted">No preview yet.</div>
-      </section>
-    </main>
+      <div class="table-wrap">
+        <div class="empty" id="preview-empty">parse a file to see entries</div>
+        <table id="preview-table" style="display: none">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>FEN</th>
+              <th>UCI</th>
+              <th>Score</th>
+              <th>Ply</th>
+              <th>Result</th>
+              <th>Continuation</th>
+            </tr>
+          </thead>
+          <tbody id="preview-tbody"></tbody>
+        </table>
+      </div>
+    </div>
 
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="app.js"></script>
   </body>
-  </html>
+</html>

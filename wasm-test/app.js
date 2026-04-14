@@ -1,55 +1,48 @@
 import init, { parse_binpack } from "./pkg/sfbinpack.js";
 
 const fileInput = document.getElementById("file-input");
+const fileNameDisplay = document.getElementById("file-name-display");
 const previewLimitInput = document.getElementById("preview-limit");
 const parseButton = document.getElementById("parse-button");
 const statusEl = document.getElementById("status");
-const summaryEl = document.getElementById("summary");
-const previewEl = document.getElementById("preview");
+const metricsRow = document.getElementById("metrics-row");
+const previewTable = document.getElementById("preview-table");
+const previewEmpty = document.getElementById("preview-empty");
+const previewTbody = document.getElementById("preview-tbody");
 
-function setStatus(message) {
+fileInput.addEventListener("change", () => {
+  fileNameDisplay.textContent =
+    fileInput.files?.[0]?.name ?? "no file selected";
+});
+
+function setStatus(message, type = "") {
   statusEl.textContent = message;
+  statusEl.className = "status-bar" + (type ? ` ${type}` : "");
 }
 
 function renderPreview(entries) {
+  previewTbody.innerHTML = "";
   if (!entries.length) {
-    previewEl.textContent = "No preview entries returned.";
+    previewTable.style.display = "none";
+    previewEmpty.textContent = "No entries returned.";
+    previewEmpty.style.display = "";
     return;
   }
-
-  const table = document.createElement("table");
-  const thead = document.createElement("thead");
-  const tbody = document.createElement("tbody");
-
-  thead.innerHTML = `
-    <tr>
-      <th>#</th>
-      <th>FEN</th>
-      <th>UCI</th>
-      <th>Score</th>
-      <th>Ply</th>
-      <th>Result</th>
-      <th>Continuation</th>
-    </tr>
-  `;
-
-  entries.forEach((entry, index) => {
+  entries.forEach((entry, i) => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${index + 1}</td>
-      <td>${entry.fen}</td>
+      <td>${i + 1}</td>
+      <td class="fen-cell" title="${entry.fen}">${entry.fen}</td>
       <td>${entry.uci}</td>
-      <td>${entry.score}</td>
+      <td class="score-cell">${entry.score}</td>
       <td>${entry.ply}</td>
-      <td>${entry.result}</td>
+      <td class="result-cell">${entry.result}</td>
       <td>${entry.continuation}</td>
     `;
-    tbody.appendChild(row);
+    previewTbody.appendChild(row);
   });
-
-  table.appendChild(thead);
-  table.appendChild(tbody);
-  previewEl.replaceChildren(table);
+  previewEmpty.style.display = "none";
+  previewTable.style.display = "";
 }
 
 async function parseSelectedFile() {
@@ -64,25 +57,25 @@ async function parseSelectedFile() {
 
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const previewLimit = Number.parseInt(previewLimitInput.value, 10) || 10;
+    const previewLimit = parseInt(previewLimitInput.value, 10) || 10;
     const result = parse_binpack(bytes, previewLimit);
 
-    summaryEl.textContent = JSON.stringify(
-      {
-        byteLength: result.byteLength,
-        totalEntries: result.totalEntries,
-        previewCount: result.previewCount,
-      },
-      null,
-      2,
-    );
+    document.getElementById("m-bytes").textContent =
+      result.byteLength.toLocaleString();
+    document.getElementById("m-total").textContent =
+      result.totalEntries.toLocaleString();
+    document.getElementById("m-preview").textContent =
+      result.previewCount.toLocaleString();
+    metricsRow.style.display = "";
 
     renderPreview(result.preview);
-    setStatus(`Parsed ${file.name} successfully.`);
-  } catch (error) {
-    summaryEl.textContent = "No data available.";
-    previewEl.textContent = "No preview available.";
-    setStatus(`Parse failed: ${error}`);
+    setStatus(`Parsed ${file.name} successfully.`, "ok");
+  } catch (err) {
+    metricsRow.style.display = "none";
+    previewTable.style.display = "none";
+    previewEmpty.style.display = "";
+    previewEmpty.textContent = "No preview available.";
+    setStatus(`Parse failed: ${err}`, "err");
   } finally {
     parseButton.disabled = false;
   }
@@ -90,11 +83,11 @@ async function parseSelectedFile() {
 
 async function main() {
   await init();
-  setStatus("Wasm module loaded. Select a .binpack file to inspect it.");
+  setStatus("Wasm loaded — select a .binpack file to inspect.");
   parseButton.addEventListener("click", parseSelectedFile);
 }
 
-main().catch((error) => {
-  setStatus(`Failed to initialize wasm module: ${error}`);
+main().catch((err) => {
+  setStatus(`Failed to initialize wasm: ${err}`, "err");
   parseButton.disabled = true;
 });
