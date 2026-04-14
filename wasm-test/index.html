@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sfbinpack wasm test</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, system-ui, sans-serif;
+        background: #111827;
+        color: #e5e7eb;
+      }
+
+      body {
+        margin: 0;
+        padding: 24px;
+      }
+
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin-top: 0;
+        font-size: 1.75rem;
+      }
+
+      .panel {
+        background: #1f2937;
+        border: 1px solid #374151;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+
+      label,
+      input,
+      button {
+        font: inherit;
+      }
+
+      input[type="file"],
+      input[type="number"] {
+        margin-top: 8px;
+      }
+
+      button {
+        margin-top: 12px;
+        padding: 10px 14px;
+        border: 0;
+        border-radius: 8px;
+        background: #2563eb;
+        color: white;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: #0f172a;
+        border-radius: 8px;
+        padding: 12px;
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        text-align: left;
+        vertical-align: top;
+        padding: 8px;
+        border-bottom: 1px solid #374151;
+      }
+
+      .muted {
+        color: #9ca3af;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>sfbinpack wasm test page</h1>
+
+      <section class="panel">
+        <p>
+          Build the wasm package with
+          <code>wasm-pack build --target web --out-dir wasm-test/pkg</code>, then serve the repo
+          root with a static file server and open this page.
+        </p>
+        <label>
+          Binpack file
+          <br />
+          <input id="file-input" type="file" accept=".binpack,application/octet-stream" />
+        </label>
+        <br />
+        <label>
+          Preview entries
+          <br />
+          <input id="preview-limit" type="number" min="1" max="1000" value="10" />
+        </label>
+        <br />
+        <button id="parse-button">Parse file</button>
+      </section>
+
+      <section class="panel">
+        <h2>Status</h2>
+        <pre id="status">Loading wasm module...</pre>
+      </section>
+
+      <section class="panel">
+        <h2>Summary</h2>
+        <pre id="summary" class="muted">No file parsed yet.</pre>
+      </section>
+
+      <section class="panel">
+        <h2>Preview</h2>
+        <div id="preview" class="muted">No preview yet.</div>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+  </html>

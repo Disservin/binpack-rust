@@ -7,6 +7,12 @@ Instead of storing complete positions, they store the differences between moves.
 This makes them very space efficient - using only 2.5 bytes per position on
 average. See [Anatomy](#anatomy) for more details.
 
+The library also works on `wasm32` targets. In wasm, prefer the in-memory APIs
+such as `CompressedTrainingDataEntryReader::from_bytes`,
+`CompressedTrainingDataEntryReader::from_slice`,
+`CompressedTrainingDataEntryWriter::new_in_memory`, and
+`CompressedTrainingDataEntryWriter::into_bytes`.
+
 ## Compile
 
 If your machine has the fast BMI2 instruction set (Zen 3+), you should enable the feature flag
@@ -51,6 +57,50 @@ fn main() {
 }
 ```
 
+### WASM Usage
+
+```rust
+use sfbinpack::{CompressedTrainingDataEntryReader, CompressedTrainingDataEntryWriter};
+
+fn read_binpack(bytes: Vec<u8>) {
+    let mut reader = CompressedTrainingDataEntryReader::from_bytes(bytes).unwrap();
+
+    while reader.has_next() {
+        let entry = reader.next();
+        let _ = entry;
+    }
+}
+
+fn write_binpack(entry: sfbinpack::TrainingDataEntry) -> Vec<u8> {
+    let mut writer = CompressedTrainingDataEntryWriter::new_in_memory().unwrap();
+    writer.write_entry(&entry).unwrap();
+    writer.into_bytes().unwrap()
+}
+```
+
+### Browser Test Page
+
+There is a simple browser test page in `wasm-test/`.
+
+Build the wasm package for the web target:
+
+```bash
+cargo install wasm-pack
+wasm-pack build --target web --out-dir wasm-test/pkg
+```
+
+Then serve the repository root with any static file server and open `wasm-test/index.html`.
+
+The page imports the generated `wasm-test/pkg/sfbinpack.js` bundle and uses the exported
+`parse_binpack(bytes, preview_limit)` function to inspect a selected `.binpack` file.
+
+GitHub Pages deployment is configured in `.github/workflows/pages.yml`.
+On pushes to `main`, GitHub Actions builds the wasm bundle into `wasm-test/pkg` and publishes
+the `wasm-test/` directory as the Pages site.
+
+After the first deployment, enable GitHub Pages in the repository settings and select
+`GitHub Actions` as the source if it is not already selected.
+
 _More examples can be found in the [examples](./examples) directory._  
 _If you are doing some counting keep in mind to use a `u64` type for the counter._
 
@@ -64,6 +114,9 @@ cargo run --release --example <example_name>
 
 `binpack_reader` - Read a binpack file and print the contents.
 `binpack_writer` - Write a binpack file from a list of positions.
+
+The examples use `std::fs` for local files, but the library itself does not
+require filesystem access. For wasm, use the in-memory APIs above.
 
 ## Performance Comparison
 

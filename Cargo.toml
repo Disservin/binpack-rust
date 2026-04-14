@@ -20,11 +20,16 @@ bmi2 = []
 arrayvec = "0.7.6"
 thiserror = "2.0.8"
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys = "0.3"
+wasm-bindgen = "0.2"
+
 [dev-dependencies]
 tempfile = "3"
 
 [lib]
 path = "src/lib.rs"
+crate-type = ["rlib", "cdylib"]
 
 [[bin]]
 name = "sfbinpack"
