@@ -178,6 +178,23 @@ impl<T: Write> CompressedTrainingDataEntryWriter<T> {
     }
 }
 
+impl CompressedTrainingDataEntryWriter<io::Cursor<Vec<u8>>> {
+    /// Create an in-memory writer.
+    ///
+    /// This is convenient for wasm environments where the encoded binpack is
+    /// usually returned as a byte buffer instead of being written to a file.
+    pub fn new_in_memory() -> Result<Self> {
+        Self::new(io::Cursor::new(Vec::new()))
+    }
+
+    /// Flush pending data and return the encoded binpack bytes.
+    pub fn into_bytes(&mut self) -> Result<Vec<u8>> {
+        self.flush_packed()?;
+        let cursor = self.into_inner()?;
+        Ok(cursor.into_inner())
+    }
+}
+
 impl<T: Write> Drop for CompressedTrainingDataEntryWriter<T> {
     fn drop(&mut self) {
         if let Err(e) = self.flush_packed() {
@@ -390,5 +407,32 @@ mod tests {
             18, 113, 155, 5, 0, 0, 0, 0, 0, 0, 10, 104, 249, 253, 0, 68, 0, 0, 0, 1, 29, 83, 79,
         ];
         assert_eq!(read_bytes, expected_bytes);
+    }
+
+    #[test]
+    fn test_compressed_writer_into_bytes() {
+        let entries = vec![TrainingDataEntry {
+            pos: Position::from_fen("1q5b/1r5k/4p2p/1b2P1pN/3p4/6PP/1nP3B1/1Q2B1K1 w - - 0 35")
+                .unwrap(),
+            mv: Move::new(
+                Square::new(10),
+                Square::new(26),
+                MoveType::Normal,
+                Piece::none(),
+            ),
+            score: -201,
+            ply: 68,
+            result: 0,
+        }];
+
+        let mut writer = CompressedTrainingDataEntryWriter::new_in_memory().unwrap();
+
+        for entry in &entries {
+            writer.write_entry(entry).unwrap();
+        }
+
+        let bytes = writer.into_bytes().unwrap();
+        assert!(!bytes.is_empty());
+        assert_eq!(&bytes[..4], b"BINP");
     }
 }

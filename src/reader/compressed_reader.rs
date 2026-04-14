@@ -196,6 +196,23 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
     }
 }
 
+impl CompressedTrainingDataEntryReader<io::Cursor<Vec<u8>>> {
+    /// Create a reader from an owned byte buffer.
+    ///
+    /// This is convenient for wasm environments where binpack data is often
+    /// already available in memory.
+    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self> {
+        Self::new(io::Cursor::new(bytes))
+    }
+}
+
+impl<'a> CompressedTrainingDataEntryReader<io::Cursor<&'a [u8]>> {
+    /// Create a reader from a borrowed byte slice.
+    pub fn from_slice(bytes: &'a [u8]) -> Result<Self> {
+        Self::new(io::Cursor::new(bytes))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{fs::OpenOptions, io::Cursor};
@@ -321,6 +338,20 @@ mod tests {
         ];
 
         assert_eq!(entries, expected);
+    }
+
+    #[test]
+    fn test_reader_from_bytes() {
+        let file = std::fs::read("./test/ep1.binpack").unwrap();
+        let mut reader = CompressedTrainingDataEntryReader::from_bytes(file).unwrap();
+
+        let mut num_entries = 0;
+        while reader.has_next() {
+            let _ = reader.next();
+            num_entries += 1;
+        }
+
+        assert_eq!(num_entries, 3);
     }
 
     // test case for https://github.com/Disservin/binpack-rust/issues/17
