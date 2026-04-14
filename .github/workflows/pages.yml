@@ -28,7 +28,7 @@ jobs:
         run: cargo install wasm-pack --locked
 
       - name: Build wasm web bundle
-        run: wasm-pack build --target web --out-dir wasm-test/pkg
+        run: wasm-pack build --target web --out-dir wasm-test/pkg --release
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
