@@ -92,7 +92,14 @@ wasm-pack build --target web --out-dir wasm-test/pkg
 Then serve the repository root with any static file server and open `wasm-test/index.html`.
 
 The page imports the generated `wasm-test/pkg/sfbinpack.js` bundle and uses the exported
-`parse_binpack(bytes, preview_limit)` function to inspect a selected `.binpack` file.
+`parse_binpack_chunk(bytes, preview_limit)` function to inspect a selected `.binpack` file.
+
+The browser page does not load the entire binpack into memory. It reads the file chunk-by-chunk
+using `File.slice()`, parses each BINP chunk separately, and aggregates counts and preview rows
+client-side.
+
+The preview page also stops reading more chunks once it has collected the requested number of
+preview rows, so requesting 10 rows does not scan the rest of a very large file.
 
 GitHub Pages deployment is configured in `.github/workflows/pages.yml`.
 On pushes to `main`, GitHub Actions builds the wasm bundle into `wasm-test/pkg` and publishes

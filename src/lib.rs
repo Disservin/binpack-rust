@@ -16,4 +16,4 @@ pub use writer::CompressedTrainingDataEntryWriter;
 pub use writer::CompressedWriterError;
 
 #[cfg(target_arch = "wasm32")]
-pub use wasm::parse_binpack;
+pub use wasm::parse_binpack_chunk;

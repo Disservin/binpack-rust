@@ -294,13 +294,17 @@
 
       <div class="status-bar" id="status">awaiting wasm module...</div>
 
+      <div class="status-bar">
+        browser mode: reads one BINP chunk at a time with <code>File.slice()</code>
+      </div>
+
       <div class="metrics" id="metrics-row" style="display: none">
         <div class="metric">
-          <div class="metric-label">byte length</div>
+          <div class="metric-label">bytes read</div>
           <div class="metric-value" id="m-bytes">—</div>
         </div>
         <div class="metric">
-          <div class="metric-label">total entries</div>
+          <div class="metric-label">entries read</div>
           <div class="metric-value" id="m-total">—</div>
         </div>
         <div class="metric">

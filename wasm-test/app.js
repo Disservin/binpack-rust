@@ -1,4 +1,4 @@
-import init, { parse_binpack } from "./pkg/sfbinpack.js";
+import init, { parse_binpack_chunk } from "./pkg/sfbinpack.js";
 
 const fileInput = document.getElementById("file-input");
 const fileNameDisplay = document.getElementById("file-name-display");
@@ -45,6 +45,32 @@ function renderPreview(entries) {
   previewTable.style.display = "";
 }
 
+function parseChunkSize(header) {
+  if (header.length !== 8) {
+    throw new Error("Short BINP header");
+  }
+
+  if (
+    header[0] !== 0x42 ||
+    header[1] !== 0x49 ||
+    header[2] !== 0x4e ||
+    header[3] !== 0x50
+  ) {
+    throw new Error("Invalid BINP magic");
+  }
+
+  return (
+    header[4] |
+    (header[5] << 8) |
+    (header[6] << 16) |
+    (header[7] << 24)
+  ) >>> 0;
+}
+
+async function readSlice(file, start, end) {
+  return new Uint8Array(await file.slice(start, end).arrayBuffer());
+}
+
 async function parseSelectedFile() {
   const file = fileInput.files?.[0];
   if (!file) {
@@ -56,20 +82,51 @@ async function parseSelectedFile() {
   setStatus(`Reading ${file.name}...`);
 
   try {
-    const bytes = new Uint8Array(await file.arrayBuffer());
     const previewLimit = parseInt(previewLimitInput.value, 10) || 10;
-    const result = parse_binpack(bytes, previewLimit);
+    let offset = 0;
+    let chunkIndex = 0;
+    let entriesRead = 0;
+    let bytesRead = 0;
+    const preview = [];
+
+    while (offset < file.size && preview.length < previewLimit) {
+      setStatus(`Parsing ${file.name} chunk ${chunkIndex + 1}...`);
+
+      const header = await readSlice(file, offset, offset + 8);
+      const chunkSize = parseChunkSize(header);
+      const payloadStart = offset + 8;
+      const payloadEnd = payloadStart + chunkSize;
+
+      if (payloadEnd > file.size) {
+        throw new Error(`Chunk ${chunkIndex + 1} exceeds file size`);
+      }
+
+      const payload = await readSlice(file, payloadStart, payloadEnd);
+      const remainingPreview = Math.max(previewLimit - preview.length, 0);
+      const result = parse_binpack_chunk(payload, remainingPreview);
+
+      entriesRead += result.entriesRead;
+      bytesRead += payloadEnd - offset;
+      preview.push(...result.preview);
+
+      offset = payloadEnd;
+      chunkIndex += 1;
+    }
 
     document.getElementById("m-bytes").textContent =
-      result.byteLength.toLocaleString();
+      bytesRead.toLocaleString();
     document.getElementById("m-total").textContent =
-      result.totalEntries.toLocaleString();
+      entriesRead.toLocaleString();
     document.getElementById("m-preview").textContent =
-      result.previewCount.toLocaleString();
+      preview.length.toLocaleString();
     metricsRow.style.display = "";
 
-    renderPreview(result.preview);
-    setStatus(`Parsed ${file.name} successfully.`, "ok");
+    renderPreview(preview);
+    const stoppedEarly = preview.length >= previewLimit && offset < file.size;
+    const message = stoppedEarly
+      ? `Loaded ${preview.length} preview rows from ${chunkIndex} chunk${chunkIndex === 1 ? "" : "s"} without scanning the rest of the file.`
+      : `Parsed ${file.name} successfully across ${chunkIndex} chunk${chunkIndex === 1 ? "" : "s"}.`;
+    setStatus(message, "ok");
   } catch (err) {
     metricsRow.style.display = "none";
     previewTable.style.display = "none";
@@ -83,7 +140,7 @@ async function parseSelectedFile() {
 
 async function main() {
   await init();
-  setStatus("Wasm loaded — select a .binpack file to inspect.");
+  setStatus("Wasm loaded. The page stops reading once it has enough preview rows.");
   parseButton.addEventListener("click", parseSelectedFile);
 }
 
