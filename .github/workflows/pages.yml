@@ -30,6 +30,9 @@ jobs:
       - name: Build wasm web bundle
         run: wasm-pack build --target web --out-dir wasm-test/pkg --release
 
+      - name: Copy example binpack into site
+        run: mkdir -p wasm-test/examples && cp test/ep1.binpack wasm-test/examples/ep1.binpack
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
