@@ -4,6 +4,7 @@ const fileInput = document.getElementById("file-input");
 const fileNameDisplay = document.getElementById("file-name-display");
 const previewLimitInput = document.getElementById("preview-limit");
 const parseButton = document.getElementById("parse-button");
+const exampleButton = document.getElementById("example-button");
 const statusEl = document.getElementById("status");
 const metricsRow = document.getElementById("metrics-row");
 const previewTable = document.getElementById("preview-table");
@@ -71,15 +72,10 @@ async function readSlice(file, start, end) {
   return new Uint8Array(await file.slice(start, end).arrayBuffer());
 }
 
-async function parseSelectedFile() {
-  const file = fileInput.files?.[0];
-  if (!file) {
-    setStatus("Select a .binpack file first.");
-    return;
-  }
-
+async function parseBinpackSource({ name, size, readRange }) {
   parseButton.disabled = true;
-  setStatus(`Reading ${file.name}...`);
+  exampleButton.disabled = true;
+  setStatus(`Reading ${name}...`);
 
   try {
     const previewLimit = parseInt(previewLimitInput.value, 10) || 10;
@@ -89,19 +85,19 @@ async function parseSelectedFile() {
     let bytesRead = 0;
     const preview = [];
 
-    while (offset < file.size && preview.length < previewLimit) {
-      setStatus(`Parsing ${file.name} chunk ${chunkIndex + 1}...`);
+    while (offset < size && preview.length < previewLimit) {
+      setStatus(`Parsing ${name} chunk ${chunkIndex + 1}...`);
 
-      const header = await readSlice(file, offset, offset + 8);
+      const header = await readRange(offset, offset + 8);
       const chunkSize = parseChunkSize(header);
       const payloadStart = offset + 8;
       const payloadEnd = payloadStart + chunkSize;
 
-      if (payloadEnd > file.size) {
+      if (payloadEnd > size) {
         throw new Error(`Chunk ${chunkIndex + 1} exceeds file size`);
       }
 
-      const payload = await readSlice(file, payloadStart, payloadEnd);
+      const payload = await readRange(payloadStart, payloadEnd);
       const remainingPreview = Math.max(previewLimit - preview.length, 0);
       const result = parse_binpack_chunk(payload, remainingPreview);
 
@@ -122,10 +118,10 @@ async function parseSelectedFile() {
     metricsRow.style.display = "";
 
     renderPreview(preview);
-    const stoppedEarly = preview.length >= previewLimit && offset < file.size;
+    const stoppedEarly = preview.length >= previewLimit && offset < size;
     const message = stoppedEarly
       ? `Loaded ${preview.length} preview rows from ${chunkIndex} chunk${chunkIndex === 1 ? "" : "s"} without scanning the rest of the file.`
-      : `Parsed ${file.name} successfully across ${chunkIndex} chunk${chunkIndex === 1 ? "" : "s"}.`;
+      : `Parsed ${name} successfully across ${chunkIndex} chunk${chunkIndex === 1 ? "" : "s"}.`;
     setStatus(message, "ok");
   } catch (err) {
     metricsRow.style.display = "none";
@@ -135,6 +131,48 @@ async function parseSelectedFile() {
     setStatus(`Parse failed: ${err}`, "err");
   } finally {
     parseButton.disabled = false;
+    exampleButton.disabled = false;
+  }
+}
+
+async function parseSelectedFile() {
+  const file = fileInput.files?.[0];
+  if (!file) {
+    setStatus("Select a .binpack file first.");
+    return;
+  }
+
+  await parseBinpackSource({
+    name: file.name,
+    size: file.size,
+    readRange: (start, end) => readSlice(file, start, end),
+  });
+}
+
+async function parseExampleFile() {
+  const response = await fetch("./examples/ep1.binpack");
+  if (!response.ok) {
+    throw new Error(`Failed to fetch example binpack: ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  fileNameDisplay.textContent = "example: ep1.binpack";
+
+  await parseBinpackSource({
+    name: "example ep1.binpack",
+    size: blob.size,
+    readRange: async (start, end) =>
+      new Uint8Array(await blob.slice(start, end).arrayBuffer()),
+  });
+}
+
+async function handleExampleClick() {
+  try {
+    await parseExampleFile();
+  } catch (err) {
+    parseButton.disabled = false;
+    exampleButton.disabled = false;
+    setStatus(`Example load failed: ${err}`, "err");
   }
 }
 
@@ -142,9 +180,11 @@ async function main() {
   await init();
   setStatus("Wasm loaded. The page stops reading once it has enough preview rows.");
   parseButton.addEventListener("click", parseSelectedFile);
+  exampleButton.addEventListener("click", handleExampleClick);
 }
 
 main().catch((err) => {
   setStatus(`Failed to initialize wasm: ${err}`, "err");
   parseButton.disabled = true;
+  exampleButton.disabled = true;
 });

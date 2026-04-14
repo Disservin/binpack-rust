@@ -101,6 +101,9 @@ client-side.
 The preview page also stops reading more chunks once it has collected the requested number of
 preview rows, so requesting 10 rows does not scan the rest of a very large file.
 
+The demo page also includes a built-in link and button for the repository's example file,
+`test/ep1.binpack`, so you can test the wasm page without uploading a local file.
+
 GitHub Pages deployment is configured in `.github/workflows/pages.yml`.
 On pushes to `main`, GitHub Actions builds the wasm bundle into `wasm-test/pkg` and publishes
 the `wasm-test/` directory as the Pages site.

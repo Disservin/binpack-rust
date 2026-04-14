@@ -144,9 +144,52 @@
         background: var(--bg3);
         border-color: rgba(255, 255, 255, 0.25);
       }
+      #example-button {
+        font-family: inherit;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 7px 18px;
+        cursor: pointer;
+        background: transparent;
+        border: 0.5px solid var(--border2);
+        border-radius: 5px;
+        color: var(--blue);
+        transition:
+          background 0.1s,
+          border-color 0.15s;
+      }
+      #example-button:hover {
+        background: var(--bg3);
+        border-color: rgba(255, 255, 255, 0.25);
+      }
       #parse-button:disabled {
         opacity: 0.35;
         cursor: not-allowed;
+      }
+      #example-button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      .hint-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: -0.4rem;
+        margin-bottom: 1.1rem;
+        font-size: 11px;
+        color: var(--text3);
+      }
+
+      .hint-row a {
+        color: var(--blue);
+        text-decoration: none;
+      }
+
+      .hint-row a:hover {
+        text-decoration: underline;
       }
 
       .status-bar {
@@ -290,6 +333,12 @@
           />
         </div>
         <button id="parse-button">parse</button>
+        <button id="example-button">use example</button>
+      </div>
+
+      <div class="hint-row">
+        <span>quick test:</span>
+        <a href="./examples/ep1.binpack" download>download example binpack</a>
       </div>
 
       <div class="status-bar" id="status">awaiting wasm module...</div>
