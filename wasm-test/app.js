@@ -2,18 +2,36 @@ import init, { parse_binpack_chunk } from "./pkg/sfbinpack.js";
 
 const fileInput = document.getElementById("file-input");
 const fileNameDisplay = document.getElementById("file-name-display");
-const previewLimitInput = document.getElementById("preview-limit");
 const parseButton = document.getElementById("parse-button");
 const exampleButton = document.getElementById("example-button");
+const openFileButton = document.getElementById("open-file-button");
 const statusEl = document.getElementById("status");
 const metricsRow = document.getElementById("metrics-row");
 const previewTable = document.getElementById("preview-table");
 const previewEmpty = document.getElementById("preview-empty");
 const previewTbody = document.getElementById("preview-tbody");
 
+let currentFileHandle = null;
+let currentFile = null;
+let currentFileSize = 0;
+let currentChunkOffset = 0;
+let currentChunkIndex = 0;
+let visitedOffsets = [];
+let currentChunkPayload = null;
+let currentChunkNextOffset = 0;
+let currentEntryOffset = 0;
+let totalEntriesInChunk = 0;
+let hasMoreEntriesInChunk = true;
+const ENTRIES_PER_PAGE = 1000;
+
 fileInput.addEventListener("change", () => {
-  fileNameDisplay.textContent =
-    fileInput.files?.[0]?.name ?? "no file selected";
+  const file = fileInput.files?.[0];
+  if (file) {
+    fileNameDisplay.textContent = file.name;
+    currentFileHandle = null;
+    currentFile = file;
+    currentFileSize = file.size;
+  }
 });
 
 function setStatus(message, type = "") {
@@ -32,7 +50,7 @@ function renderPreview(entries) {
   entries.forEach((entry, i) => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${i + 1}</td>
+      <td>${entry.offset !== undefined ? entry.offset : i + 1}</td>
       <td class="fen-cell" title="${entry.fen}">${entry.fen}</td>
       <td>${entry.uci}</td>
       <td class="score-cell">${entry.score}</td>
@@ -72,62 +90,209 @@ async function readSlice(file, start, end) {
   return new Uint8Array(await file.slice(start, end).arrayBuffer());
 }
 
+async function readSliceFromHandle(fileHandle, start, end) {
+  const file = await fileHandle.getFile();
+  const blob = file.slice(start, end);
+  const arrayBuffer = await blob.arrayBuffer();
+  return new Uint8Array(arrayBuffer);
+}
+
+async function readChunkAt(offset, readRange) {
+  const header = await readRange(offset, offset + 8);
+  const chunkSize = parseChunkSize(header);
+  const payload = await readRange(offset + 8, offset + 8 + chunkSize);
+  return { payload, nextOffset: offset + 8 + chunkSize };
+}
+
+function parseEntriesFromPayload(payload, startEntryIndex, count) {
+  const chunkResult = parse_binpack_chunk(payload, count, startEntryIndex);
+  const totalEntries = chunkResult.totalEntries;
+  const entriesRead = chunkResult.entriesRead;
+  
+  return { 
+    entries: chunkResult.preview, 
+    totalParsed: totalEntries,
+    hasMore: entriesRead === count && startEntryIndex + entriesRead < totalEntries
+  };
+}
+
+async function navigateForward(readRange) {
+  parseButton.disabled = true;
+  exampleButton.disabled = true;
+
+  try {
+    if (!currentChunkPayload) {
+      setStatus("No chunk loaded", "err");
+      parseButton.disabled = false;
+      exampleButton.disabled = false;
+      return;
+    }
+
+    const nextEntryOffset = currentEntryOffset + ENTRIES_PER_PAGE;
+    const result = parseEntriesFromPayload(currentChunkPayload, nextEntryOffset, ENTRIES_PER_PAGE);
+    
+    if (result.entries.length > 0 || result.hasMore) {
+      currentEntryOffset = nextEntryOffset;
+      if (!result.hasMore) {
+        totalEntriesInChunk = result.totalParsed;
+      }
+      
+      document.getElementById("m-bytes").textContent = result.entries.length.toLocaleString();
+      document.getElementById("m-total").textContent = totalEntriesInChunk.toLocaleString();
+      document.getElementById("m-preview").textContent = result.entries.length.toLocaleString();
+      metricsRow.style.display = "";
+      
+      renderPreview(result.entries);
+      setStatus(`Chunk ${currentChunkIndex + 1}, entries ${currentEntryOffset + 1}-${currentEntryOffset + result.entries.length} of ${totalEntriesInChunk}`, "ok");
+    } else {
+      if (currentChunkOffset >= currentFileSize) {
+        setStatus("Already at last chunk", "err");
+      } else {
+        visitedOffsets.push(currentChunkOffset);
+        const chunkResult = await readChunkAt(currentChunkOffset, readRange);
+        currentChunkPayload = chunkResult.payload;
+        currentChunkNextOffset = chunkResult.nextOffset;
+        
+        const parseResult = parseEntriesFromPayload(chunkResult.payload, 0, ENTRIES_PER_PAGE);
+        totalEntriesInChunk = parseResult.totalParsed;
+        hasMoreEntriesInChunk = parseResult.hasMore;
+        currentEntryOffset = 0;
+        currentChunkOffset = currentChunkNextOffset;
+        currentChunkIndex++;
+        
+        document.getElementById("m-bytes").textContent = chunkResult.payload.length.toLocaleString();
+        document.getElementById("m-total").textContent = totalEntriesInChunk.toLocaleString();
+        document.getElementById("m-preview").textContent = parseResult.entries.length.toLocaleString();
+        metricsRow.style.display = "";
+        
+        renderPreview(parseResult.entries);
+        setStatus(`Chunk ${currentChunkIndex + 1}, entries 1-${parseResult.entries.length} of ${totalEntriesInChunk}`, "ok");
+      }
+    }
+  } catch (err) {
+    setStatus(`Navigation failed: ${err}`, "err");
+  } finally {
+    parseButton.disabled = false;
+    exampleButton.disabled = false;
+  }
+}
+
+async function navigateBackward(readRange) {
+  parseButton.disabled = true;
+  exampleButton.disabled = true;
+
+  try {
+    const prevEntryOffset = currentEntryOffset - ENTRIES_PER_PAGE;
+    
+    if (currentChunkPayload && prevEntryOffset >= 0) {
+      currentEntryOffset = prevEntryOffset;
+      const result = parseEntriesFromPayload(currentChunkPayload, currentEntryOffset, ENTRIES_PER_PAGE);
+      
+      document.getElementById("m-bytes").textContent = result.entries.length.toLocaleString();
+      document.getElementById("m-total").textContent = totalEntriesInChunk.toLocaleString();
+      document.getElementById("m-preview").textContent = result.entries.length.toLocaleString();
+      metricsRow.style.display = "";
+      
+      renderPreview(result.entries);
+      setStatus(`Chunk ${currentChunkIndex + 1}, entries ${currentEntryOffset + 1}-${currentEntryOffset + result.entries.length} of ${totalEntriesInChunk}`, "ok");
+    } else if (currentChunkIndex > 0) {
+      const prevOffset = visitedOffsets[currentChunkIndex - 1];
+      if (prevOffset !== undefined) {
+        const result = await readChunkAt(prevOffset, readRange);
+        currentChunkPayload = result.payload;
+        currentChunkNextOffset = result.nextOffset;
+        
+        const parseResult = parseEntriesFromPayload(result.payload, 0, ENTRIES_PER_PAGE);
+        totalEntriesInChunk = parseResult.totalParsed;
+        hasMoreEntriesInChunk = parseResult.hasMore;
+        
+        currentChunkOffset = prevOffset;
+        currentChunkIndex--;
+        visitedOffsets.pop();
+        
+        const lastPageStart = Math.max(0, totalEntriesInChunk - ENTRIES_PER_PAGE);
+        currentEntryOffset = lastPageStart;
+        
+        const finalResult = parseEntriesFromPayload(result.payload, lastPageStart, ENTRIES_PER_PAGE);
+        
+        document.getElementById("m-bytes").textContent = result.payload.length.toLocaleString();
+        document.getElementById("m-total").textContent = totalEntriesInChunk.toLocaleString();
+        document.getElementById("m-preview").textContent = finalResult.entries.length.toLocaleString();
+        metricsRow.style.display = "";
+        
+        renderPreview(finalResult.entries);
+        setStatus(`Chunk ${currentChunkIndex + 1}, entries ${lastPageStart + 1}-${totalEntriesInChunk} of ${totalEntriesInChunk}`, "ok");
+      } else {
+        setStatus("Already at first chunk", "err");
+      }
+    } else {
+      setStatus("Already at first chunk", "err");
+    }
+  } catch (err) {
+    setStatus(`Navigation failed: ${err}`, "err");
+  } finally {
+    parseButton.disabled = false;
+    exampleButton.disabled = false;
+  }
+}
+
+async function handleKeyDown(event) {
+  if (!currentFile) {
+    return;
+  }
+
+  const readRange = currentFileHandle
+    ? (start, end) => readSliceFromHandle(currentFileHandle, start, end)
+    : (start, end) => readSlice(currentFile, start, end);
+
+  if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+    event.preventDefault();
+    await navigateForward(readRange);
+  } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+    event.preventDefault();
+    await navigateBackward(readRange);
+  }
+}
+
 async function parseBinpackSource({ name, size, readRange }) {
   parseButton.disabled = true;
   exampleButton.disabled = true;
   setStatus(`Reading ${name}...`);
 
   try {
-    const previewLimit = parseInt(previewLimitInput.value, 10) || 10;
-    let offset = 0;
-    let chunkIndex = 0;
-    let entriesRead = 0;
-    let bytesRead = 0;
-    const preview = [];
+    currentFileSize = size;
+    currentChunkOffset = 0;
+    currentChunkIndex = 0;
+    visitedOffsets = [];
+    currentChunkPayload = null;
+    currentEntryOffset = 0;
+    totalEntriesInChunk = 0;
+    hasMoreEntriesInChunk = true;
 
-    while (offset < size && preview.length < previewLimit) {
-      setStatus(`Parsing ${name} chunk ${chunkIndex + 1}...`);
+    const result = await readChunkAt(0, readRange);
+    currentChunkPayload = result.payload;
+    currentChunkNextOffset = result.nextOffset;
+    
+    const parseResult = parseEntriesFromPayload(result.payload, 0, ENTRIES_PER_PAGE);
+    totalEntriesInChunk = parseResult.totalParsed;
+    hasMoreEntriesInChunk = parseResult.hasMore;
+    currentEntryOffset = 0;
+    currentChunkOffset = currentChunkNextOffset;
 
-      const header = await readRange(offset, offset + 8);
-      const chunkSize = parseChunkSize(header);
-      const payloadStart = offset + 8;
-      const payloadEnd = payloadStart + chunkSize;
-
-      if (payloadEnd > size) {
-        throw new Error(`Chunk ${chunkIndex + 1} exceeds file size`);
-      }
-
-      const payload = await readRange(payloadStart, payloadEnd);
-      const remainingPreview = Math.max(previewLimit - preview.length, 0);
-      const result = parse_binpack_chunk(payload, remainingPreview);
-
-      entriesRead += result.entriesRead;
-      bytesRead += payloadEnd - offset;
-      preview.push(...result.preview);
-
-      offset = payloadEnd;
-      chunkIndex += 1;
-    }
-
-    document.getElementById("m-bytes").textContent =
-      bytesRead.toLocaleString();
-    document.getElementById("m-total").textContent =
-      entriesRead.toLocaleString();
-    document.getElementById("m-preview").textContent =
-      preview.length.toLocaleString();
+    document.getElementById("m-bytes").textContent = result.payload.length.toLocaleString();
+    document.getElementById("m-total").textContent = totalEntriesInChunk.toLocaleString();
+    document.getElementById("m-preview").textContent = parseResult.entries.length.toLocaleString();
     metricsRow.style.display = "";
 
-    renderPreview(preview);
-    const stoppedEarly = preview.length >= previewLimit && offset < size;
-    const message = stoppedEarly
-      ? `Loaded ${preview.length} preview rows from ${chunkIndex} chunk${chunkIndex === 1 ? "" : "s"} without scanning the rest of the file.`
-      : `Parsed ${name} successfully across ${chunkIndex} chunk${chunkIndex === 1 ? "" : "s"}.`;
-    setStatus(message, "ok");
+    renderPreview(parseResult.entries);
+    document.getElementById("navigation-hint").style.display = "block";
+    setStatus(`Chunk 1, entries 1-${parseResult.entries.length} of ${totalEntriesInChunk}. Use arrow keys to navigate.`, "ok");
   } catch (err) {
     metricsRow.style.display = "none";
     previewTable.style.display = "none";
     previewEmpty.style.display = "";
     previewEmpty.textContent = "No preview available.";
+    document.getElementById("navigation-hint").style.display = "none";
     setStatus(`Parse failed: ${err}`, "err");
   } finally {
     parseButton.disabled = false;
@@ -147,6 +312,42 @@ async function parseSelectedFile() {
     size: file.size,
     readRange: (start, end) => readSlice(file, start, end),
   });
+}
+
+async function openWithFilePicker() {
+  if (!("showOpenFilePicker" in window)) {
+    setStatus("File System Access API not supported in this browser", "err");
+    return;
+  }
+
+  try {
+    const [fileHandle] = await window.showOpenFilePicker({
+      types: [
+        {
+          description: "BINP Pack Files",
+          accept: {
+            "application/octet-stream": [".binpack", ".bin"],
+          },
+        },
+      ],
+      multiple: false,
+    });
+
+    const file = await fileHandle.getFile();
+    fileNameDisplay.textContent = file.name;
+    currentFileHandle = fileHandle;
+    currentFile = file;
+
+    await parseBinpackSource({
+      name: file.name,
+      size: file.size,
+      readRange: (start, end) => readSliceFromHandle(fileHandle, start, end),
+    });
+  } catch (err) {
+    if (err.name !== "AbortError") {
+      setStatus(`File picker error: ${err}`, "err");
+    }
+  }
 }
 
 async function parseExampleFile() {
@@ -178,9 +379,18 @@ async function handleExampleClick() {
 
 async function main() {
   await init();
-  setStatus("Wasm loaded. The page stops reading once it has enough preview rows.");
+  setStatus("Wasm loaded. Use arrow keys to navigate chunks.");
   parseButton.addEventListener("click", parseSelectedFile);
   exampleButton.addEventListener("click", handleExampleClick);
+  if (openFileButton) {
+    openFileButton.addEventListener("click", openWithFilePicker);
+  }
+  if (!("showOpenFilePicker" in window)) {
+    if (openFileButton) {
+      openFileButton.style.display = "none";
+    }
+  }
+  document.addEventListener("keydown", handleKeyDown);
 }
 
 main().catch((err) => {
