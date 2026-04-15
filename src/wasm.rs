@@ -8,7 +8,11 @@ fn set_property(target: &Object, key: &str, value: JsValue) -> Result<(), JsValu
 }
 
 #[wasm_bindgen]
-pub fn parse_binpack_chunk(bytes: Uint8Array, preview_limit: usize) -> Result<Object, JsValue> {
+pub fn parse_binpack_chunk(
+    bytes: Uint8Array,
+    preview_limit: usize,
+    skip: usize,
+) -> Result<Object, JsValue> {
     let payload = bytes.to_vec();
     let chunk_size = payload.len() as u32;
 
@@ -23,27 +27,37 @@ pub fn parse_binpack_chunk(bytes: Uint8Array, preview_limit: usize) -> Result<Ob
     let result = Object::new();
     let preview = Array::new();
     let mut entries_read = 0u32;
+    let mut offset = 0u32;
 
-    while reader.has_next() && entries_read < preview_limit as u32 {
+    while reader.has_next() {
         let continuation = reader.is_next_entry_continuation();
         let entry = reader.next();
 
-        let js_entry = Object::new();
+        if offset >= skip as u32 {
+            let js_entry = Object::new();
 
-        set_property(
-            &js_entry,
-            "fen",
-            JsValue::from_str(&entry.pos.fen().unwrap()),
-        )?;
-        set_property(&js_entry, "uci", JsValue::from_str(&entry.mv.as_uci()))?;
-        set_property(&js_entry, "score", JsValue::from_f64(entry.score as f64))?;
-        set_property(&js_entry, "ply", JsValue::from_f64(entry.ply as f64))?;
-        set_property(&js_entry, "result", JsValue::from_f64(entry.result as f64))?;
-        set_property(&js_entry, "continuation", JsValue::from_bool(continuation))?;
+            set_property(
+                &js_entry,
+                "fen",
+                JsValue::from_str(&entry.pos.fen().unwrap()),
+            )?;
+            set_property(&js_entry, "uci", JsValue::from_str(&entry.mv.as_uci()))?;
+            set_property(&js_entry, "score", JsValue::from_f64(entry.score as f64))?;
+            set_property(&js_entry, "ply", JsValue::from_f64(entry.ply as f64))?;
+            set_property(&js_entry, "result", JsValue::from_f64(entry.result as f64))?;
+            set_property(&js_entry, "continuation", JsValue::from_bool(continuation))?;
+            set_property(&js_entry, "offset", JsValue::from_f64(offset as f64))?;
 
-        preview.push(&js_entry);
+            preview.push(&js_entry);
 
-        entries_read += 1;
+            entries_read += 1;
+
+            if entries_read >= preview_limit as u32 {
+                break;
+            }
+        }
+
+        offset += 1;
     }
 
     set_property(
@@ -57,6 +71,7 @@ pub fn parse_binpack_chunk(bytes: Uint8Array, preview_limit: usize) -> Result<Ob
         JsValue::from_f64(preview.length() as f64),
     )?;
     set_property(&result, "preview", preview.into())?;
+    set_property(&result, "totalEntries", JsValue::from_f64(offset as f64))?;
 
     Ok(result)
 }
