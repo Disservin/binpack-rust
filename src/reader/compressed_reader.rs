@@ -59,7 +59,7 @@ pub struct CompressedTrainingDataEntryReader<T: Read + Seek> {
 }
 
 #[derive(Debug, Default)]
-struct ChunkReader {
+pub struct ChunkReader {
     movelist_reader: Option<PackedMoveScoreListReader>,
     offset: usize,
     is_end: bool,
@@ -213,15 +213,22 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
 }
 
 impl ChunkReader {
-    fn has_next(&self, chunk: &[u8]) -> bool {
-        if self.movelist_reader.as_ref().is_some_and(|reader| reader.has_next()) {
+    /// Check whether another entry can be read from this chunk.
+    pub fn has_next(&self, chunk: &[u8]) -> bool {
+        if self
+            .movelist_reader
+            .as_ref()
+            .is_some_and(|reader| reader.has_next())
+        {
             return true;
         }
 
         !self.is_end && self.offset + PackedTrainingDataEntry::byte_size() + 2 <= chunk.len()
     }
 
-    fn next(&mut self, chunk: &[u8]) -> TrainingDataEntry {
+    /// Read the next entry from this chunk.
+    #[allow(clippy::should_implement_trait)]
+    pub fn next(&mut self, chunk: &[u8]) -> TrainingDataEntry {
         if let Some(ref mut reader) = self.movelist_reader {
             let entry = reader.next_entry(&chunk[self.offset..]);
 
