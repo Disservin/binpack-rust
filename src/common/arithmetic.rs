@@ -22,7 +22,7 @@ static NTH_SET_BIT_INDEX_DISPATCH: AtomicPtr<NthSetBitIndexFn> =
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "bmi2")]
 unsafe fn nth_set_bit_index_bmi2(v: u64, n: u64) -> u32 {
-    _pdep_u64(1u64 << n, v).trailing_zeros() as u32
+    _pdep_u64(1u64 << n, v).trailing_zeros()
 }
 
 #[cfg(target_arch = "x86_64")]
@@ -81,6 +81,7 @@ const fn create_lookup_table() -> [[u8; 8]; 256] {
 const NTH_SET_BIT_INDEX: [[u8; 8]; 256] = create_lookup_table();
 
 #[inline(always)]
+#[allow(unreachable_code)]
 pub fn nth_set_bit_index(v: u64, n: u64) -> u32 {
     #[cfg(target_arch = "x86_64")]
     {
