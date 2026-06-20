@@ -25,6 +25,15 @@ pub enum CompressedReaderError {
 
 type Result<T> = std::result::Result<T, CompressedReaderError>;
 
+/// Read the next raw binpack chunk payload into `buffer`.
+///
+/// Returns `Ok(false)` when the stream is already at EOF. Otherwise this reads
+/// the next chunk header and payload, resizes `buffer` to the chunk size, and
+/// overwrites it with the chunk bytes before returning `Ok(true)`.
+///
+/// This helper does not keep any reader state beyond the current stream
+/// position, so it can be called repeatedly on the same file handle as long as
+/// the handle remains positioned at the start of the next chunk.
 pub fn read_chunk_into<T: Read + Seek>(file: &mut T, buffer: &mut Vec<u8>) -> Result<bool> {
     let mut reader = CompressedTrainingDataFileReader::new(file)?;
 
@@ -138,7 +147,11 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
         self.input_file.as_ref().unwrap().read_bytes()
     }
 
-    /// Read the next raw chunk into a caller-provided buffer.
+    /// Read the next raw binpack chunk payload into `buffer`.
+    ///
+    /// Returns `Ok(false)` when no more chunks are available. Otherwise this
+    /// reads the next chunk header and payload, resizes `buffer` to the chunk
+    /// size, and overwrites it with the chunk bytes before returning `Ok(true)`.
     pub fn read_next_chunk_into(&mut self, buffer: &mut Vec<u8>) -> Result<bool> {
         if !self.input_file.as_mut().unwrap().has_next_chunk() {
             return Ok(false);
@@ -241,10 +254,16 @@ impl ChunkReader {
             return entry;
         }
 
+        // We don't have a movelist reader, so we first need to extract the "stem" information
+
+        // EBNF: Stem
         let entry = self.read_entry(chunk);
+
+        // EBNF: Count
         let num_plies = self.read_plies(chunk);
 
         if num_plies > 0 {
+            // EBNF: MoveText
             self.movelist_reader = Some(PackedMoveScoreListReader::new(entry, num_plies));
         } else {
             self.finish_if_at_end(chunk);
