@@ -44,6 +44,7 @@ impl<T: Read + Seek> CompressedTrainingDataFileReader<T> {
         false
     }
 
+    #[allow(dead_code)]
     pub fn read_next_chunk(&mut self) -> Result<Vec<u8>> {
         let header = self.read_chunk_header()?;
         let mut data = vec![0u8; header.chunk_size as usize];
