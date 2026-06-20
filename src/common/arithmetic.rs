@@ -1,10 +1,55 @@
-#[cfg(all(target_arch = "x86_64", any(target_feature = "bmi2", feature = "bmi2")))]
+#[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::_pdep_u64;
+#[cfg(target_arch = "x86_64")]
+use std::sync::atomic::{AtomicPtr, Ordering::Relaxed};
 
-#[cfg(all(target_arch = "x86_64", any(target_feature = "bmi2", feature = "bmi2")))]
+#[cfg(target_arch = "x86_64")]
+type NthSetBitIndexFn = fn(u64, u64) -> u32;
+
+#[cfg(target_arch = "x86_64")]
+static NTH_SET_BIT_INDEX_BOOTSTRAP_FN: NthSetBitIndexFn = nth_set_bit_index_bootstrap;
+
+#[cfg(target_arch = "x86_64")]
+static NTH_SET_BIT_INDEX_BMI2_DISPATCH_FN: NthSetBitIndexFn = nth_set_bit_index_bmi2_dispatch;
+
+#[cfg(target_arch = "x86_64")]
+static NTH_SET_BIT_INDEX_FALLBACK_FN: NthSetBitIndexFn = nth_set_bit_index_fallback;
+
+#[cfg(target_arch = "x86_64")]
+static NTH_SET_BIT_INDEX_DISPATCH: AtomicPtr<NthSetBitIndexFn> =
+    AtomicPtr::new(&NTH_SET_BIT_INDEX_BOOTSTRAP_FN as *const _ as *mut _);
+
+#[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "bmi2")]
 unsafe fn nth_set_bit_index_bmi2(v: u64, n: u64) -> u32 {
     _pdep_u64(1u64 << n, v).trailing_zeros() as u32
+}
+
+#[cfg(target_arch = "x86_64")]
+fn nth_set_bit_index_bmi2_dispatch(v: u64, n: u64) -> u32 {
+    unsafe { nth_set_bit_index_bmi2(v, n) }
+}
+
+#[cfg(target_arch = "x86_64")]
+#[inline(always)]
+fn nth_set_bit_index_dispatch(v: u64, n: u64) -> u32 {
+    let fn_ptr = NTH_SET_BIT_INDEX_DISPATCH.load(Relaxed);
+    let selected_fn = unsafe { *fn_ptr };
+    selected_fn(v, n)
+}
+
+#[cfg(target_arch = "x86_64")]
+fn nth_set_bit_index_bootstrap(v: u64, n: u64) -> u32 {
+    let selected_fn = if super::cpu_features::has_fast_bmi2() {
+        &NTH_SET_BIT_INDEX_BMI2_DISPATCH_FN as *const _ as *mut _
+    } else {
+        &NTH_SET_BIT_INDEX_FALLBACK_FN as *const _ as *mut _
+    };
+
+    NTH_SET_BIT_INDEX_DISPATCH.store(selected_fn, Relaxed);
+
+    let selected_fn = unsafe { *selected_fn };
+    selected_fn(v, n)
 }
 
 const fn nth_set_bit_index_naive(mut value: u64, n: usize) -> u8 {
@@ -35,14 +80,18 @@ const fn create_lookup_table() -> [[u8; 8]; 256] {
 
 const NTH_SET_BIT_INDEX: [[u8; 8]; 256] = create_lookup_table();
 
-#[allow(unreachable_code)]
 #[inline(always)]
 pub fn nth_set_bit_index(v: u64, n: u64) -> u32 {
-    #[cfg(all(target_arch = "x86_64", any(target_feature = "bmi2", feature = "bmi2")))]
-    unsafe {
-        return nth_set_bit_index_bmi2(v, n);
+    #[cfg(target_arch = "x86_64")]
+    {
+        return nth_set_bit_index_dispatch(v, n);
     }
 
+    nth_set_bit_index_fallback(v, n)
+}
+
+#[inline(always)]
+fn nth_set_bit_index_fallback(v: u64, n: u64) -> u32 {
     let mut value = v;
     let mut count = n;
 
