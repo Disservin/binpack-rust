@@ -11,6 +11,8 @@ pub use common::entry::TrainingDataEntry;
 
 pub use reader::CompressedReaderError;
 pub use reader::CompressedTrainingDataEntryReader;
+pub use reader::parse_chunk;
+pub use reader::read_chunk_into;
 
 pub use writer::CompressedTrainingDataEntryWriter;
 pub use writer::CompressedWriterError;
