@@ -15,17 +15,18 @@ such as `CompressedTrainingDataEntryReader::from_bytes`,
 
 ## Compile
 
-If your machine has the fast BMI2 instruction set (Zen 3+), you should enable the feature flag
+Starting with crate version `0.6.3`, fast BMI2 runtime dispatch is enabled by default.
+You do not need to pass a feature flag or add one in `Cargo.toml`.
 
 ```bash
-cargo build --release --features bmi2;
+cargo build --release
 ```
 
-or define it in your `Cargo.toml` file (change version).
+In `Cargo.toml`:
 
 ```
 [dependencies]
-binpack = { version = "0.4.3", features = ["bmi2"] }
+sfbinpack = "0.6.3"
 ```
 
 ## Usage
