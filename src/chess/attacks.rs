@@ -447,12 +447,61 @@ mod tests {
             if !new_pos.is_checked(pos.side_to_move()) {
                 let nodes = perft(&new_pos, depth - 1);
                 total_nodes += nodes;
-                println!("{}: {}", mv.as_uci(), nodes);
             }
         }
 
-        println!("Total nodes: {}", total_nodes);
         total_nodes
+    }
+
+    fn parse_epd_perft_line(line: &str) -> (&str, Vec<(u32, u64)>) {
+        let mut parts = line.split(';');
+        let fen = parts.next().unwrap().trim();
+        let depths = parts
+            .map(str::trim)
+            .filter(|part| !part.is_empty())
+            .map(|part| {
+                let mut fields = part.split_whitespace();
+                let depth = fields
+                    .next()
+                    .unwrap()
+                    .trim_start_matches('D')
+                    .parse()
+                    .unwrap();
+                let nodes = fields.next().unwrap().parse().unwrap();
+                (depth, nodes)
+            })
+            .collect();
+
+        (fen, depths)
+    }
+
+    fn assert_standard_epd_depth(depth: u32) {
+        assert_standard_epd_depth_range(depth, 0, usize::MAX);
+    }
+
+    fn assert_standard_epd_depth_range(depth: u32, start: usize, end: usize) {
+        for (index, line) in include_str!("../../test/standard.epd").lines().enumerate() {
+            if index < start || index >= end {
+                continue;
+            }
+
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+
+            let (fen, expected_depths) = parse_epd_perft_line(line);
+            if let Some((_, expected_nodes)) = expected_depths
+                .into_iter()
+                .find(|(expected_depth, _)| *expected_depth == depth)
+            {
+                assert_eq!(
+                    split_perft(fen, depth),
+                    expected_nodes,
+                    "perft mismatch for FEN `{fen}` at depth {depth}"
+                );
+            }
+        }
     }
 
     #[test]
@@ -493,255 +542,67 @@ mod tests {
     }
 
     #[test]
-    fn test_perft_startpos_depth_1() {
-        assert_eq!(split_perft(STARTPOS, 1), 20);
+    fn test_perft_standard_epd_depth_1() {
+        assert_standard_epd_depth(1);
     }
 
     #[test]
-    fn test_perft_startpos_depth_2() {
-        assert_eq!(split_perft(STARTPOS, 2), 400);
+    fn test_perft_standard_epd_depth_2() {
+        assert_standard_epd_depth(2);
     }
 
     #[test]
-    fn test_perft_startpos_depth_3() {
-        assert_eq!(split_perft(STARTPOS, 3), 8902);
+    fn test_perft_standard_epd_depth_3() {
+        assert_standard_epd_depth(3);
     }
 
     #[test]
-    fn test_perft_startpos_depth_4() {
-        assert_eq!(split_perft(STARTPOS, 4), 197281);
+    fn test_perft_standard_epd_depth_4() {
+        assert_standard_epd_depth(4);
     }
 
     #[test]
-    fn test_perft_startpos_depth_5() {
-        assert_eq!(split_perft(STARTPOS, 5), 4865609);
+    fn test_perft_standard_epd_depth_5() {
+        assert_standard_epd_depth(5);
     }
 
     #[test]
-    fn test_perft_startpos_depth_7() {
-        assert_eq!(
-            split_perft(
-                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-                7
-            ),
-            3195901860
-        );
+    fn test_perft_standard_epd_depth_6_part_1() {
+        assert_standard_epd_depth_range(6, 0, 16);
     }
 
     #[test]
-    fn test_perft_custom_position_1() {
-        assert_eq!(
-            split_perft(
-                "rnbqkbnr/ppp1pppp/3p4/8/8/2P5/PP1PPPPP/RNBQKBNR w KQkq - 0 2",
-                1
-            ),
-            21
-        );
+    fn test_perft_standard_epd_depth_6_part_2() {
+        assert_standard_epd_depth_range(6, 16, 32);
     }
 
     #[test]
-    fn test_perft_custom_position_2() {
-        assert_eq!(
-            split_perft(
-                "rnbqkbnr/pppppppp/8/8/8/2P5/PP1PPPPP/RNBQKBNR b KQkq - 0 1",
-                2
-            ),
-            420
-        );
+    fn test_perft_standard_epd_depth_6_part_3() {
+        assert_standard_epd_depth_range(6, 32, 48);
     }
 
     #[test]
-    fn test_perft_castle_position() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-                1
-            ),
-            48
-        );
+    fn test_perft_standard_epd_depth_6_part_4() {
+        assert_standard_epd_depth_range(6, 48, 64);
     }
 
     #[test]
-    fn test_perft_complex_position_1() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1ppqpb1/bnN1pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 1 1",
-                1
-            ),
-            41
-        );
+    fn test_perft_standard_epd_depth_6_part_5() {
+        assert_standard_epd_depth_range(6, 64, 80);
     }
 
     #[test]
-    fn test_perft_complex_position_2() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/P1N2Q2/1PPBBPpP/R3K2R w KQkq - 0 2",
-                1
-            ),
-            48
-        );
+    fn test_perft_standard_epd_depth_6_part_6() {
+        assert_standard_epd_depth_range(6, 80, 96);
     }
 
     #[test]
-    fn test_perft_complex_position_32() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1",
-                1
-            ),
-            45
-        );
+    fn test_perft_standard_epd_depth_6_part_7() {
+        assert_standard_epd_depth_range(6, 96, 112);
     }
 
     #[test]
-    fn test_perft_complex_position_3() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-                2
-            ),
-            2039
-        );
-    }
-
-    #[test]
-    fn test_perft_complex_position_4() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/P1N2Q1p/1PPBBPPP/R3K2R b KQkq - 0 1",
-                2
-            ),
-            2186
-        );
-    }
-
-    #[test]
-    fn test_perft_complex_position_25() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/5Q2/PPPBBPpP/RN2K2R w KQkq - 0 2",
-                1
-            ),
-            47
-        );
-    }
-
-    #[test]
-    fn test_perft_complex_position_5() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-                3
-            ),
-            97862
-        );
-    }
-
-    #[test]
-    fn test_perft_complex_position_6() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1p1qpb1/bn1ppnp1/1B1PN3/1p2P3/P1N2Q1p/1PPB1PPP/R3K2R b KQkq - 1 2",
-                1
-            ),
-            7
-        );
-    }
-
-    #[test]
-    fn test_perft_complex_position_7() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1p1qpb1/bn1ppnp1/3PN3/1p2P3/P1N2Q1p/1PPBBPPP/R3K2R w KQkq - 0 2",
-                2
-            ),
-            2135
-        );
-    }
-
-    #[test]
-    fn test_perft_complex_position_8() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1ppqpb1/bn2p1p1/3PN3/1p2n3/P1N2Q1p/1PPBBPPP/R3K2R w KQkq - 0 2",
-                2
-            ),
-            2717
-        );
-    }
-
-    #[test]
-    fn test_perft_complex_position_9() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/P1N2Q1p/1PPBBPPP/R3K2R b KQkq - 0 1",
-                3
-            ),
-            94405
-        );
-    }
-
-    #[test]
-    fn test_perft_complex_position_10() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-                4
-            ),
-            4085603
-        );
-    }
-
-    #[test]
-    fn test_perft_complex_position_11() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-                5
-            ),
-            193690690
-        );
-    }
-
-    #[test]
-    fn test_perft_endgame_position() {
-        assert_eq!(
-            split_perft("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7),
-            178633661
-        );
-    }
-
-    #[test]
-    fn test_perft_tactical_position_1() {
-        assert_eq!(
-            split_perft(
-                "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
-                6
-            ),
-            706045033
-        );
-    }
-
-    #[test]
-    fn test_perft_tactical_position_2() {
-        assert_eq!(
-            split_perft(
-                "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
-                5
-            ),
-            89941194
-        );
-    }
-
-    #[test]
-    fn test_perft_tactical_position_3() {
-        assert_eq!(
-            split_perft(
-                "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 1",
-                5
-            ),
-            164075551
-        );
+    fn test_perft_standard_epd_depth_6_part_8() {
+        assert_standard_epd_depth_range(6, 112, 128);
     }
 }
