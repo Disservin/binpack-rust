@@ -124,7 +124,7 @@ require filesystem access. For wasm, use the in-memory APIs above.
 
 ## Performance Comparison
 
-Slightly faster when compiled with bmi2 because of _pdep_u64 trick which is missing in the upstream version.
+Slightly slower on aarch64 because of missing SVE2 pdep code path, compared to the upstream repo.
 
 ## Anatomy
 
