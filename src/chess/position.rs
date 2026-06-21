@@ -181,15 +181,15 @@ impl Position {
 
         if mv.mtype() == MoveType::Promotion {
             let promotion = mv.promoted_piece();
-            self.place_piece(self.stm, promotion, to);
+            self.place_piece(self.stm, promotion, promotion.piece_type(), to);
         } else if mv.mtype() == MoveType::EnPassant {
             debug_assert!(piece.piece_type() == PieceType::Pawn);
 
             let captured_sq = Square::new(to.index() ^ 8);
             self.remove_piecetype(!self.stm, PieceType::Pawn, captured_sq);
-            self.place_piece(self.stm, piece, to);
+            self.place_piece(self.stm, piece, PieceType::Pawn, to);
         } else if mv.mtype() == MoveType::Normal {
-            self.place_piece(self.stm, piece, to);
+            self.place_piece(self.stm, piece, pt, to);
         } else if mv.mtype() == MoveType::Castle {
             if mv.castle_type() == CastleType::Short {
                 let rook_to = if self.stm == Color::White {
@@ -207,8 +207,8 @@ impl Position {
                 let rook = self.piece_at(to);
 
                 self.remove_piecetype(self.stm, PieceType::Rook, to);
-                self.place_piece(self.stm, rook, rook_to);
-                self.place_piece(self.stm, piece, king_to);
+                self.place_piece(self.stm, rook, PieceType::Rook, rook_to);
+                self.place_piece(self.stm, piece, PieceType::King, king_to);
             } else {
                 let rook_to = if self.stm == Color::White {
                     Square::D1
@@ -225,8 +225,8 @@ impl Position {
                 let rook = self.piece_at(to);
 
                 self.remove_piecetype(self.stm, PieceType::Rook, to);
-                self.place_piece(self.stm, rook, rook_to);
-                self.place_piece(self.stm, piece, king_to);
+                self.place_piece(self.stm, rook, PieceType::Rook, rook_to);
+                self.place_piece(self.stm, piece, PieceType::King, king_to);
             }
         }
 
@@ -271,7 +271,7 @@ impl Position {
                     // move the enemy pawn
                     let enemy_pawn = self.piece_at(enemy_sq);
                     self.remove_piecetype(!self.stm, PieceType::Pawn, enemy_sq);
-                    self.place_piece(!self.stm, enemy_pawn, ep);
+                    self.place_piece(!self.stm, enemy_pawn, PieceType::Pawn, ep);
 
                     // remove our pawn
                     self.remove_piecetype(self.stm, PieceType::Pawn, to);
@@ -282,11 +282,11 @@ impl Position {
                     // undo the move
 
                     // move the enemy pawn
-                    self.place_piece(!self.stm, enemy_pawn, enemy_sq);
+                    self.place_piece(!self.stm, enemy_pawn, PieceType::Pawn, enemy_sq);
                     self.remove_piecetype(!self.stm, PieceType::Pawn, ep);
 
                     // place our pawn
-                    self.place_piece(self.stm, piece, to);
+                    self.place_piece(self.stm, piece, PieceType::Pawn, to);
 
                     if !is_checked {
                         self.enpassant = ep;
@@ -341,19 +341,19 @@ impl Position {
         debug_assert!(pc != Piece::none());
         debug_assert!(sq != Square::NONE);
 
-        self.place_piece(pc.color(), pc, sq);
+        self.place_piece(pc.color(), pc, pc.piece_type(), sq);
     }
 
     /// Places a piece on the board
     #[inline(always)]
-    fn place_piece(&mut self, side: Color, pc: Piece, sq: Square) {
+    fn place_piece(&mut self, side: Color, pc: Piece, pt: PieceType, sq: Square) {
         debug_assert!(pc != Piece::none());
         debug_assert!(sq != Square::NONE);
         debug_assert!(side == pc.color());
 
         let mask = 1u64 << (sq.index());
         self.bb_color[side as usize] |= mask;
-        self.bb[pc.piece_type().ordinal() as usize] |= mask;
+        self.bb[pt.ordinal() as usize] |= mask;
         self.pieces[sq.index() as usize] = pc;
     }
 
