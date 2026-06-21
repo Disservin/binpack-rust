@@ -22,13 +22,6 @@ You do not need to pass a feature flag or add one in `Cargo.toml`.
 cargo build --release
 ```
 
-In `Cargo.toml`:
-
-```
-[dependencies]
-sfbinpack = "0.6.3"
-```
-
 ## Usage
 
 Run the following Cargo command in your project directory:
