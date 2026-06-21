@@ -98,13 +98,6 @@ preview rows, so requesting 10 rows does not scan the rest of a very large file.
 The demo page also includes a built-in link and button for the repository's example file,
 `test/ep1.binpack`, so you can test the wasm page without uploading a local file.
 
-GitHub Pages deployment is configured in `.github/workflows/pages.yml`.
-On pushes to `main`, GitHub Actions builds the wasm bundle into `wasm-test/pkg` and publishes
-the `wasm-test/` directory as the Pages site.
-
-After the first deployment, enable GitHub Pages in the repository settings and select
-`GitHub Actions` as the source if it is not already selected.
-
 _More examples can be found in the [examples](./examples) directory._  
 _If you are doing some counting keep in mind to use a `u64` type for the counter._
 
