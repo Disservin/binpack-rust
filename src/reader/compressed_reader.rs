@@ -25,13 +25,51 @@ pub enum CompressedReaderError {
 
 type Result<T> = std::result::Result<T, CompressedReaderError>;
 
+/// Read the next raw binpack chunk payload into `buffer`.
+///
+/// Returns `Ok(false)` when the stream is already at EOF. Otherwise this reads
+/// the next chunk header and payload, resizes `buffer` to the chunk size, and
+/// overwrites it with the chunk bytes before returning `Ok(true)`.
+///
+/// This helper does not keep any reader state beyond the current stream
+/// position, so it can be called repeatedly on the same file handle as long as
+/// the handle remains positioned at the start of the next chunk.
+pub fn read_chunk_into<T: Read + Seek>(file: &mut T, buffer: &mut Vec<u8>) -> Result<bool> {
+    let mut reader = CompressedTrainingDataFileReader::new(file)?;
+
+    if !reader.has_next_chunk() {
+        return Ok(false);
+    }
+
+    reader.read_next_chunk_into(buffer)?;
+
+    Ok(true)
+}
+
+pub fn parse_chunk(chunk: &[u8]) -> Vec<TrainingDataEntry> {
+    let mut reader = ChunkReader::default();
+    let mut entries = Vec::new();
+
+    while reader.has_next(chunk) {
+        entries.push(reader.next(chunk));
+    }
+
+    entries
+}
+
 /// Reads Stockfish binpacks and returns a TrainingDataEntry
 /// for each encoded entry.
 #[derive(Debug)]
 pub struct CompressedTrainingDataEntryReader<T: Read + Seek> {
     chunk: Vec<u8>,
-    movelist_reader: Option<PackedMoveScoreListReader>,
+    chunk_reader: ChunkReader,
     input_file: Option<CompressedTrainingDataFileReader<T>>,
+    is_end: bool,
+}
+
+#[derive(Debug, Default)]
+pub struct ChunkReader {
+    movelist_reader: Option<PackedMoveScoreListReader>,
     offset: usize,
     is_end: bool,
 }
@@ -87,21 +125,14 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
 
         let mut reader = Self {
             chunk,
-            movelist_reader: None,
+            chunk_reader: ChunkReader::default(),
             input_file: Some(CompressedTrainingDataFileReader::new(file)?),
-            offset: 0,
             is_end: false,
         };
 
-        if !reader.input_file.as_mut().unwrap().has_next_chunk() {
+        if !reader.load_next_chunk()? {
             reader.is_end = true;
             return Err(CompressedReaderError::EndOfFile);
-        } else {
-            reader
-                .input_file
-                .as_mut()
-                .unwrap()
-                .read_next_chunk_into(&mut reader.chunk)?;
         }
 
         Ok(reader)
@@ -116,6 +147,29 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
         self.input_file.as_ref().unwrap().read_bytes()
     }
 
+    /// Read the next raw binpack chunk payload into `buffer`.
+    ///
+    /// Returns `Ok(false)` when no more chunks are available. Otherwise this
+    /// reads the next chunk header and payload, resizes `buffer` to the chunk
+    /// size, and overwrites it with the chunk bytes before returning `Ok(true)`.
+    pub fn read_next_chunk_into(&mut self, buffer: &mut Vec<u8>) -> Result<bool> {
+        if !self.input_file.as_mut().unwrap().has_next_chunk() {
+            return Ok(false);
+        }
+
+        self.input_file
+            .as_mut()
+            .unwrap()
+            .read_next_chunk_into(buffer)?;
+
+        Ok(true)
+    }
+
+    /// Parse all entries from a single chunk payload.
+    pub fn parse_chunk(chunk: &[u8]) -> Vec<TrainingDataEntry> {
+        parse_chunk(chunk)
+    }
+
     /// Check if there are more TrainingDataEntry to read
     pub fn has_next(&self) -> bool {
         !self.is_end
@@ -123,7 +177,7 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
 
     /// Check if the next entry is a continuation of the last returned entry from next()
     pub fn is_next_entry_continuation(&self) -> bool {
-        if let Some(ref reader) = self.movelist_reader {
+        if let Some(ref reader) = self.chunk_reader.movelist_reader {
             return reader.has_next();
         }
 
@@ -133,13 +187,68 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
     /// Get the next TrainingDataEntry
     #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> TrainingDataEntry {
+        let entry = self.chunk_reader.next(&self.chunk);
+
+        if !self.chunk_reader.has_next(&self.chunk) {
+            self.fetch_next_chunk_if_needed();
+        }
+
+        entry
+    }
+
+    // EBNF: BLOCK
+    fn fetch_next_chunk_if_needed(&mut self) {
+        if self.chunk_reader.has_next(&self.chunk) {
+            return;
+        }
+
+        if self.load_next_chunk().unwrap() {
+            return;
+        }
+
+        self.is_end = true;
+    }
+
+    fn load_next_chunk(&mut self) -> Result<bool> {
+        if !self.input_file.as_mut().unwrap().has_next_chunk() {
+            return Ok(false);
+        }
+
+        self.input_file
+            .as_mut()
+            .unwrap()
+            .read_next_chunk_into(&mut self.chunk)?;
+
+        self.chunk_reader = ChunkReader::default();
+
+        Ok(true)
+    }
+}
+
+impl ChunkReader {
+    /// Check whether another entry can be read from this chunk.
+    pub fn has_next(&self, chunk: &[u8]) -> bool {
+        if self
+            .movelist_reader
+            .as_ref()
+            .is_some_and(|reader| reader.has_next())
+        {
+            return true;
+        }
+
+        !self.is_end && self.offset + PackedTrainingDataEntry::byte_size() + 2 <= chunk.len()
+    }
+
+    /// Read the next entry from this chunk.
+    #[allow(clippy::should_implement_trait)]
+    pub fn next(&mut self, chunk: &[u8]) -> TrainingDataEntry {
         if let Some(ref mut reader) = self.movelist_reader {
-            let entry = reader.next_entry(&self.chunk[self.offset..]);
+            let entry = reader.next_entry(&chunk[self.offset..]);
 
             if !reader.has_next() {
                 self.offset += reader.num_read_bytes();
                 self.movelist_reader = None;
-                self.fetch_next_chunk_if_needed();
+                self.finish_if_at_end(chunk);
             }
 
             return entry;
@@ -148,50 +257,42 @@ impl<T: Read + Seek> CompressedTrainingDataEntryReader<T> {
         // We don't have a movelist reader, so we first need to extract the "stem" information
 
         // EBNF: Stem
-        let entry = self.read_entry();
+        let entry = self.read_entry(chunk);
 
         // EBNF: Count
-        let num_plies = self.read_plies();
+        let num_plies = self.read_plies(chunk);
 
         if num_plies > 0 {
             // EBNF: MoveText
             self.movelist_reader = Some(PackedMoveScoreListReader::new(entry, num_plies));
         } else {
-            self.fetch_next_chunk_if_needed();
+            self.finish_if_at_end(chunk);
         }
 
         entry
     }
 
-    fn read_entry(&mut self) -> TrainingDataEntry {
+    fn read_entry(&mut self, chunk: &[u8]) -> TrainingDataEntry {
         let size = PackedTrainingDataEntry::byte_size();
 
-        debug_assert!(self.offset + size <= self.chunk.len());
+        debug_assert!(self.offset + size <= chunk.len());
 
-        let packed =
-            PackedTrainingDataEntry::from_slice(&self.chunk[self.offset..self.offset + size]);
+        let packed = PackedTrainingDataEntry::from_slice(&chunk[self.offset..self.offset + size]);
 
         self.offset += size;
 
         packed.unpack_entry()
     }
 
-    fn read_plies(&mut self) -> u16 {
-        let ply = ((self.chunk[self.offset] as u16) << 8) | (self.chunk[self.offset + 1] as u16);
+    fn read_plies(&mut self, chunk: &[u8]) -> u16 {
+        let ply = ((chunk[self.offset] as u16) << 8) | (chunk[self.offset + 1] as u16);
         self.offset += 2;
         ply
     }
 
-    // EBNF: BLOCK
-    fn fetch_next_chunk_if_needed(&mut self) {
-        if self.offset + PackedTrainingDataEntry::byte_size() + 2 > self.chunk.len() {
-            if self.input_file.as_mut().unwrap().has_next_chunk() {
-                let chunk = self.input_file.as_mut().unwrap().read_next_chunk().unwrap();
-                self.chunk = chunk;
-                self.offset = 0;
-            } else {
-                self.is_end = true;
-            }
+    fn finish_if_at_end(&mut self, chunk: &[u8]) {
+        if self.offset + PackedTrainingDataEntry::byte_size() + 2 > chunk.len() {
+            self.is_end = true;
         }
     }
 }
@@ -352,6 +453,37 @@ mod tests {
         }
 
         assert_eq!(num_entries, 3);
+    }
+
+    #[test]
+    fn test_chunk_read_and_parse() {
+        let first_chunk: Vec<u8> = vec![
+            98, 121, 192, 21, 24, 76, 241, 100, 100, 106, 0, 4, 8, 48, 2, 17, 17, 145, 19, 117,
+            247, 0, 0, 0, 61, 232, 0, 253, 0, 39, 0, 2, 0, 0,
+        ];
+        let second_chunk: Vec<u8> = vec![
+            98, 121, 192, 21, 24, 76, 241, 100, 100, 106, 0, 4, 8, 48, 2, 17, 17, 145, 19, 117,
+            247, 0, 0, 0, 61, 232, 0, 253, 0, 39, 0, 2, 0, 0,
+        ];
+
+        let mut file = Vec::new();
+        file.extend_from_slice(b"BINP");
+        file.extend_from_slice(&(first_chunk.len() as u32).to_le_bytes());
+        file.extend_from_slice(&first_chunk);
+        file.extend_from_slice(b"BINP");
+        file.extend_from_slice(&(second_chunk.len() as u32).to_le_bytes());
+        file.extend_from_slice(&second_chunk);
+
+        let mut reader = CompressedTrainingDataEntryReader::from_bytes(file).unwrap();
+        let mut chunk = Vec::new();
+
+        assert!(reader.read_next_chunk_into(&mut chunk).unwrap());
+        assert_eq!(chunk, second_chunk);
+
+        let entries = parse_chunk(&chunk);
+
+        assert_eq!(entries.len(), 1);
+        assert!(!reader.read_next_chunk_into(&mut chunk).unwrap());
     }
 
     // test case for https://github.com/Disservin/binpack-rust/issues/17
