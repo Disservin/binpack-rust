@@ -13,6 +13,8 @@ such as `CompressedTrainingDataEntryReader::from_bytes`,
 `CompressedTrainingDataEntryWriter::new_in_memory`, and
 `CompressedTrainingDataEntryWriter::into_bytes`.
 
+You can also view a binpack in your browser by navigating to https://disservin.github.io/binpack-rust.
+
 ## Compile
 
 Starting with crate version `0.6.3`, fast BMI2 runtime dispatch is enabled by default.
