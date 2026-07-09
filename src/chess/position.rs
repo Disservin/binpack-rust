@@ -160,6 +160,13 @@ impl Position {
         // clear piece from start
         self.remove_piecetype(self.stm, pt, from);
 
+        // Update halfmove clock
+        if pt == PieceType::Pawn {
+            self.halfm = 0;
+        } else {
+            self.halfm += 1;
+        }
+
         // capture piece
         if mv.mtype() != MoveType::Castle {
             let captured = self.piece_at(to);
@@ -231,13 +238,6 @@ impl Position {
         }
 
         // update state
-
-        // Update halfmove clock
-        if pt == PieceType::Pawn {
-            self.halfm = 0;
-        } else {
-            self.halfm += 1;
-        }
 
         // Update fullmove number
         if self.stm == Color::Black {
@@ -630,5 +630,53 @@ mod tests {
     fn test_new_eq_fen() {
         let pos = Position::new();
         assert_eq!(pos, Position::from_fen(STARTPOS).unwrap());
+    }
+
+    #[test]
+    fn test_halfm_reset() {
+        let fen = "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4";
+
+        let pos = Position::from_fen(fen).unwrap();
+        let mv = Move::new(
+            Square::from_string("b5").unwrap(),
+            Square::from_string("c6").unwrap(),
+            MoveType::Normal,
+            Piece::NONE,
+        );
+        let pos = pos.after_move(mv);
+        assert_eq!(0, pos.rule50_counter());
+
+        let pos = Position::from_fen(fen).unwrap();
+        let mv = Move::new(
+            Square::from_string("d2").unwrap(),
+            Square::from_string("d3").unwrap(),
+            MoveType::Normal,
+            Piece::NONE,
+        );
+        let pos = pos.after_move(mv);
+        assert_eq!(0, pos.rule50_counter());
+
+        let pos = Position::from_fen(fen).unwrap();
+        let mv = Move::new(
+            Square::from_string("b1").unwrap(),
+            Square::from_string("c3").unwrap(),
+            MoveType::Normal,
+            Piece::NONE,
+        );
+        let pos = pos.after_move(mv);
+        assert_eq!(5, pos.rule50_counter());
+
+        let pos = Position::from_fen(
+            "r1bqk2r/pppp1ppp/2n2n2/1Bb1p3/4P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 6 5",
+        )
+        .unwrap();
+        let mv = Move::new(
+            Square::from_string("e1").unwrap(),
+            Square::from_string("h1").unwrap(),
+            MoveType::Castle,
+            Piece::NONE,
+        );
+        let pos = pos.after_move(mv);
+        assert_eq!(7, pos.rule50_counter());
     }
 }
