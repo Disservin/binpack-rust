@@ -160,8 +160,14 @@ impl Position {
         // clear piece from start
         self.remove_piecetype(self.stm, pt, from);
 
+        // Update halfmove clock
+        if pt == PieceType::Pawn {
+            self.halfm = 0;
+        } else {
+            self.halfm += 1;
+        }
+
         // capture piece
-        let mut is_capture = false;
         if mv.mtype() != MoveType::Castle {
             let captured = self.piece_at(to);
             if captured != Piece::none() {
@@ -172,7 +178,7 @@ impl Position {
                     self.update_castling_rights_color(!self.stm, from, to);
                 }
 
-                is_capture = true;
+                self.halfm = 0;
             }
         }
 
@@ -232,13 +238,6 @@ impl Position {
         }
 
         // update state
-
-        // Update halfmove clock
-        if pt == PieceType::Pawn || is_capture {
-            self.halfm = 0;
-        } else {
-            self.halfm += 1;
-        }
 
         // Update fullmove number
         if self.stm == Color::Black {
